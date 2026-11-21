@@ -28,6 +28,13 @@ const ROOT = path.resolve(import.meta.dirname, '..');
 const PLUGINS = path.join(ROOT, 'plugins');
 const TARGET = path.join(ROOT, 'index.json');
 
+/**
+ * 索引结构版本。schema 变更意味着 sha256 算法/结构变了、全量哈希会合法重算；
+ * check-versions 的第 2 道闸据此跳过跨版本的「已发布内容不可变」比对。
+ * 2 = 2026-11-21 起 hashdir 排除纯文档（.md / LICENSE），所有 sha256 重算。
+ */
+const SCHEMA_VERSION = 2;
+
 const checkOnly = process.argv.includes('--check');
 
 /* ------------------------------------------------------------------ */
@@ -316,7 +323,7 @@ async function build() {
 
   return {
     out: {
-      ...(prev.schema ? { schema: prev.schema } : {}),
+      schema: Math.max(SCHEMA_VERSION, Number(prev.schema) || 0),
       ...(prev.repo ? { repo: prev.repo } : {}),
       branch: prev.branch ?? 'main',
       updated: new Date().toISOString().slice(0, 10),

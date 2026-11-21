@@ -137,8 +137,9 @@ git grep -Il $'\r' -- 'plugins/**'                     # 不能有 CRLF
 grep -rn "eval(\|new Function\|child_process" plugins/<id>/*.js   # 跑外部命令的要人工看
 ```
 
+提交前本地先跑 `node scripts/build-index.mjs --check` 确认索引一致（CI 跑的就是这条）；
 合并完成后 `sync-artifacts.yml` 会自动重建索引与贡献者表并提交回 `main`，
-本地不需要跑 `build-index.mjs`（见上面「索引与 README 是生成物」）。
+不要在 PR 里手改或提交生成物（见上面「索引与 README 是生成物」）。
 
 ### 2. 开分支、提交
 
@@ -293,10 +294,24 @@ plugins/<插件id>/
 
 ---
 
+## 💬 交流群
+
+写插件、投稿、用市场装插件遇到问题，都欢迎来聊。提问时尽量带上插件 id、版本号和相关日志。
+
+群号：**1130901545**
+
+<div align="center">
+<img src="docs/images/qq-group.jpg" alt="roost 交流群二维码" width="240" />
+</div>
+
+---
+
 ## 许可
 
-与本项目一致：**GNU Affero General Public License v3.0 only（AGPL-3.0-only）**。允许商业使用与收费分发，但分发或通过网络提供服务时必须同样开源并提供对应源码。见 [LICENSE](LICENSE)。
+**默认**：插件沿用本仓库的 **GNU Affero General Public License v3.0 only（AGPL-3.0-only）**——允许商业使用与收费分发，但分发或通过网络提供服务时必须同样开源并提供对应源码。见 [LICENSE](LICENSE)。提交 PR 即表示你同意你的插件按此默认许可发布。
 
-提交 PR 即表示你同意你的插件按同一许可发布。
+**自定义**：插件作者可以在自己的插件目录里放一份 `LICENSE`（或 `LICENSE.md` / `COPYING` 等），以此声明本插件采用别的开源协议——做法和 [Aurabot 模块仓](https://github.com/aureth-labs/dsh-aurabot-qq-mods) 一样。这不是强制项：不放 `LICENSE` 就默认跟随上面的 AGPL-3.0-only，不用额外声明。放了的话，请在插件 README 的「许可」段写一句「本插件采用 XXX，见 [LICENSE](LICENSE)」，让读者一眼能看到。
 
-**例外**：`plugins/jm-comic/`、`plugins/pixiv-pid/` 为第三方投稿，保留各自 README 中声明的原许可（免费、禁止收费转售与商业分发），不适用本仓库的 AGPL-3.0-only。改动或再分发这两个插件时请以它们自己的声明为准。
+- 协议文件与 README 属于文档声明，**不进插件内容指纹**（`sha256` 只覆盖代码与素材），所以改协议、改文案不用升 `version`。
+- 引用第三方代码时，第三方许可照旧在插件 README 里说明；那不影响本插件自身的许可选择。
+- `plugins/jm-comic/`、`plugins/pixiv-pid/` 是第三方投稿，保留各自 README 中声明的原许可（免费、禁止收费转售与商业分发），不套用默认 AGPL。

@@ -38,6 +38,11 @@ try {
   await fs.mkdir(path.join(dir, '.venv'), { recursive: true });
   await fs.writeFile(path.join(dir, '.venv', 'y.py'), 'ignored');
   await fs.writeFile(path.join(dir, '.DS_Store'), 'ignored');
+  // 纯文档不进指纹：两份实现都必须忽略 .md 与 LICENSE（改协议不该升版本）
+  await fs.mkdir(path.join(dir, 'docs'), { recursive: true });
+  await fs.writeFile(path.join(dir, 'README.md'), 'doc v1\n');
+  await fs.writeFile(path.join(dir, 'docs', 'guide.md'), 'more docs\n');
+  await fs.writeFile(path.join(dir, 'LICENSE'), 'MIT\n');
 
   const a = await pluginHash(dir);
   const b = await frameworkHash(dir);

@@ -27,6 +27,12 @@
  * 有 16 个非扩展 `id@version` 出现过多个不同 sha256，其中 group-admin@1.1.0
  * 换过 4 次内容、dice@1.2.0 换过 2 次，当时版本号一直没动。
  *
+ * **纯文档改动豁免**（2026-11-21）：第 1 道闸忽略 .md 与 LICENSE 类文件。
+ * 改 README / 协议声明不改变用户装到的代码，不该逼着 bump 版本（此前
+ * 「链接改动按 CI 规则升 patch」就是被这条误伤）。第 2 道闸不受影响——
+ * 它比的是 index.json 里已发布版本的 sha256，而 hashdir 同样排除文档与
+ * LICENSE，它们不进索引的内容指纹（两份 hashdir 由跨仓一致性测试守卫）。
+ *
  * **扩展（`kind: 'dsh-extension'`）不参与这两道闸**：它们的更新判定走索引里的
  * `sha256`（安装器每次比对目录哈希），版本号不承载「已发布」语义，改内容
  * 不升版是合法的。判据见 `isExtension`。
@@ -131,7 +137,9 @@ function indexTriples(raw) {
     if (p.kind === 'dsh-extension') continue;
     m.set(`${p.id}@${p.version}`, String(p.sha256).toLowerCase());
   }
-  return m;
+  // schema 变了意味着哈希算法/索引结构变了（如 1→2 排除文档与 LICENSE），
+  // 全量 sha256 会合法地重算，跨 schema 比「已发布内容不可变」没有意义。
+  return { triples: m, schema: j?.schema };
 }
 
 /** 基准那一版 `index.json`。基准取不到（新分支、根本身没有这个文件）返回 null。 */
@@ -175,8 +183,21 @@ for (const id of ids) {
     continue;
   }
 
-  // 和 base 比，这个目录有没有改动
-  const changed = git('diff', '--name-only', BASE, '--', `plugins/${id}`);
+  // 和 base 比，这个目录有没有改动。
+  // 纯文档（README / *.md）不算「内容」：改文档不影响用户装到的代码，
+  // 不该逼维护者为一个错别字 bump 版本。市场比的是 index.js 里的 version，
+  // 它对应的是用户真正装到的那份东西，文档变更不应承载「已发布」语义。
+  // 真正会改变用户端行为的文件（index.js / plugin.json / ui / 素材等）照旧计数。
+  const changed = git('diff', '--name-only', BASE, '--', `plugins/${id}`)
+    .split('\n')
+    .filter((f) => {
+      if (!f) return false;
+      const name = f.split('/').pop();
+      if (/\.md$/i.test(name)) return false;
+      if (/^(license|licence|copying)(\.[a-z0-9]+)?$/i.test(name)) return false;
+      return true;
+    })
+    .join('\n');
   if (!changed) {
     checked.push({ id, ver, changed: false });
     continue;
@@ -219,17 +240,24 @@ for (const id of ids) {
  */
 const published = publishedTriples(BASE);
 const current = currentTriples();
+let schemaSkipped = false;
 if (published && current) {
-  for (const [key, was] of published) {
-    const now = current.get(key);
-    if (now && now !== was) {
-      problems.push({
-        id: key,
-        why:
-          `这个版本号已经发过，但内容被换掉了` +
-          `（已发布 sha256 ${was.slice(0, 12)}…，现在 ${now.slice(0, 12)}…）` +
-          `——装了这个版本的人收不到更新，请升 version`,
-      });
+  if (published.schema !== current.schema) {
+    // 哈希算法/索引结构升级（schema 变更）导致全量 sha256 合法重算，
+    // 跨 schema 比「已发布内容不可变」必然全红且没有意义，跳过这一道。
+    schemaSkipped = true;
+  } else {
+    for (const [key, was] of published.triples) {
+      const now = current.triples.get(key);
+      if (now && now !== was) {
+        problems.push({
+          id: key,
+          why:
+            `这个版本号已经发过，但内容被换掉了` +
+            `（已发布 sha256 ${was.slice(0, 12)}…，现在 ${now.slice(0, 12)}…）` +
+            `——装了这个版本的人收不到更新，请升 version`,
+        });
+      }
     }
   }
 }
@@ -238,8 +266,16 @@ console.log(`检查 ${ids.length} 个插件（基准 ${BASE}）`);
 for (const c of checked) {
   if (c.changed) console.log(`  ✓ ${c.id}  ${c.from ?? '?'} → ${c.ver}`);
 }
-if (published) console.log(`  · 已发布内容版本 ${published.size} 个，逐个比过 sha256`);
-else console.log(`  · 基准里没有 index.json，跳过「已发布内容不可变」检查`);
+if (schemaSkipped) {
+  console.log(
+    `  · 基准 schema=${published.schema} / 当前 schema=${current.schema}，` +
+      `哈希算法已升级，跳过「已发布内容不可变」比对`,
+  );
+} else if (published) {
+  console.log(`  · 已发布内容版本 ${published.triples.size} 个，逐个比过 sha256`);
+} else {
+  console.log(`  · 基准里没有 index.json，跳过「已发布内容不可变」检查`);
+}
 
 if (!problems.length) {
   console.log('OK：改了内容的插件都升了版本');
@@ -248,13 +284,6 @@ if (!problems.length) {
 
 console.error(`\n有 ${problems.length} 处需要处理：\n`);
 for (const p of problems) console.error(`  ✗ ${p.id}  ${p.why}`);
-console.error(
-  '\n怎么改：改内容就顺手把 version 加一。' +
-    '\n  · 修 bug / 改文案 → patch（1.2.0 → 1.2.1）' +
-    '\n  · 加功能 / 加配置项 → minor（1.2.0 → 1.3.0）' +
-    '\n  市场只比版本号，不升版就等于没发。\n',
-);
-process.exit(1);
 console.error(
   '\n怎么改：改内容就顺手把 version 加一。' +
     '\n  · 修 bug / 改文案 → patch（1.2.0 → 1.2.1）' +
