@@ -66,6 +66,15 @@ async function collect(root) {
         await walk(path.join(dir, it.name), prefix ? `${prefix}/${it.name}` : it.name);
       } else if (it.isFile()) {
         if (SKIP_FILES.has(it.name)) continue;
+        /**
+         * 纯文档不参与插件内容指纹：和框架 src/hashdir.js 的 collect 保持一致。
+         * 改 README / LICENSE 不该逼维护者 bump 版本；LICENSE 是插件作者自带的
+         * 协议声明（可自定义），不是代码。两份实现必须同步，由
+         * test/hash-consistency.mjs 守卫。
+         */
+        const lower = it.name.toLowerCase();
+        if (lower.endsWith('.md')) continue;
+        if (/^(license|licence|copying)(\.[a-z0-9]+)?$/.test(lower)) continue;
         out.push(prefix ? `${prefix}/${it.name}` : it.name);
       }
       // 符号链接一律跳过：可能指向仓库外，内容不稳定

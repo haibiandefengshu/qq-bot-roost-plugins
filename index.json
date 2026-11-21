@@ -1,5 +1,5 @@
 {
-  "schema": 1,
+  "schema": 2,
   "repo": "roost-qq/qq-bot-roost-plugins",
   "branch": "main",
   "updated": "2026-11-21",
@@ -17,7 +17,7 @@
       "frameworkVersion": ">=0.9.12",
       "runtime": "node",
       "path": "plugins/ai-chat",
-      "sha256": "cbf512666a3b1ac5e1a7a2d06424b47edd159223989de8dc3d41f99b5f697351",
+      "sha256": "c0b73e466380d2bedc6a2a382107483c9a5722ba7fa3fa0e2182342d1e80bb57",
       "author": "tdcq9594",
       "addedAt": "2026-10-24",
       "verified": "official",
@@ -36,7 +36,7 @@
       "frameworkVersion": ">=0.8.1",
       "runtime": "node",
       "path": "plugins/ai-native",
-      "sha256": "8571a95b530ede783590c3ca4599260da396aad0cc0ba246d3f67cb1d384f2e2",
+      "sha256": "195df2dfe8e2982192c2bbc04b59803390849b4d4526d63fa33c53ed33b1b08e",
       "author": "tdcq9594",
       "commands": [
         "ai"
@@ -58,7 +58,7 @@
       "frameworkVersion": ">=0.6.13",
       "runtime": "node",
       "path": "plugins/anime-img",
-      "sha256": "39b200c7c4942e718b3b20e96830a3f84a6cd4a2616c441da81e760b21b45719",
+      "sha256": "7722aca85aabeb11f8fde2bafbf79b31d667284ea4ebaf38ef4a6c2bb62b587a",
       "author": "tdcq9594",
       "commands": [
         "来张图",
@@ -87,7 +87,7 @@
       "kind": "dsh-extension",
       "runtime": "mcp",
       "path": "plugins/bili",
-      "sha256": "790296be7396c1c9ca4ed471784deadc7af47a840757e889e7c9f4f44d668495",
+      "sha256": "9f2fcb9534e5ada4d345df2d249aa28f884003d955ecf7a7e4d90ce34735d552",
       "scopes": [
         "memory:write",
         "state:read",
@@ -118,7 +118,7 @@
       ],
       "addedAt": "2026-11-07",
       "runtime": "node",
-      "sha256": "5a4503b929bad82cb628227e38c2da622c5802b81a8c012ad403cb4d609b4e0b",
+      "sha256": "892cbc7ec1db9460475bad25c289737fe264cff203859700c40111056e1667bf",
       "frameworkVersion": ">=0.6.13",
       "category": "绘图与生图"
     },
@@ -135,7 +135,7 @@
       "kind": "dsh-extension",
       "runtime": "mcp",
       "path": "plugins/demo-ext",
-      "sha256": "9c34d9cf9e75f3ea68f3bb9612325aed1341764232697e2dea0584c8c6e205b8",
+      "sha256": "58374bfbca8062c65e89d8f4dbf577801a894b9b6dbcfbf03b4e27f64c7d75d0",
       "category": "开发示例"
     },
     {
@@ -189,7 +189,7 @@
       "tags": [],
       "runtime": "node",
       "path": "plugins/douluo",
-      "sha256": "6aa389451b1e1e458b8b313b26f4eb20157d4833fdaeede61b0a009a728db0ce",
+      "sha256": "6dd90600523a3273a115f2ffc6fcbccde3951e357571e64a60fd6e2085e62710",
       "category": "游戏与娱乐"
     },
     {
@@ -273,7 +273,7 @@
       "kind": "dsh-extension",
       "runtime": "mcp",
       "path": "plugins/imagegen",
-      "sha256": "743196e7ced83aafdde25afe270fe14df5f3478d6a298571c759a94d9c383d13",
+      "sha256": "d5d1be38a535f6ed633026f1d688fde8a317302378e657dd3af8256d11af5f2a",
       "verified": "official",
       "author": "tdcq9594",
       "addedAt": "2026-11-14",
@@ -318,7 +318,7 @@
       ],
       "addedAt": "2026-11-05",
       "runtime": "node",
-      "sha256": "fb6e8f0d8a9952345f41581d312f29b90704dd061babb5f6228cebdef748d227",
+      "sha256": "184ebc3a5b09541d9c892d92c5a122f82c072e61d176b140748038c0f751180d",
       "frameworkVersion": ">=0.6.13",
       "category": "媒体与内容"
     },
@@ -376,7 +376,7 @@
       ],
       "addedAt": "2026-10-23",
       "credits": "玩法设计来自 Agam《简单的养鲲游戏》(CQP, 2020)",
-      "sha256": "efeddd35f72bc78e391794fc2edcbd065c2b9886461b1f3994ab7482ebbc229a",
+      "sha256": "a87a7791c397cf4aeee62b4f600eedd1733adc7d2616c9349171f4af28d48625",
       "frameworkVersion": ">=0.6.0",
       "verified": "official",
       "category": "游戏与娱乐"
@@ -401,7 +401,7 @@
       ],
       "addedAt": "2026-11-04",
       "runtime": "node",
-      "sha256": "12aca28c035e1c43185f4fde25faf404d66e24005ef852a0e8e7cdfa122be7c1",
+      "sha256": "06e6aa9790236ca43344c60a1d6c70dec95842e68c5f84d9d078f0745c1f8635",
       "frameworkVersion": ">=0.6.13",
       "category": "媒体与内容"
     },
@@ -429,7 +429,7 @@
       ],
       "path": "plugins/persona-grow",
       "addedAt": "2026-11-17",
-      "sha256": "ede8353d78af05813264e837081ca32937cc86044146483d2e103ac3d06f505b",
+      "sha256": "c1e84d73233f4e7a0edf3ebdcc1d1c1f3b213e9bd30d23a19b96ea041117c6f1",
       "category": "人格与人设"
     },
     {
@@ -451,7 +451,7 @@
       ],
       "addedAt": "2026-11-12",
       "runtime": "node",
-      "sha256": "76f15ed64e97d6d38e139da94de4b881104738449973cbaf87b7b69a22d3fd5f",
+      "sha256": "bac880ff01cb22dc8a471fb00f3c734b8602d9f7851a2a2ba5f431d65f981f68",
       "frameworkVersion": ">=0.6.18",
       "category": "人格与人设"
     },
@@ -468,7 +468,7 @@
         "prompt:write"
       ],
       "path": "plugins/persona-scope-ext",
-      "sha256": "53e906100df370576a5a21b6beacceebdc495385c7d0e15003bdfc2f0b59d2cf",
+      "sha256": "99122afecb087c9705c18544654afd8e823a3f66af510c518379666d1681fd88",
       "category": "人格与人设",
       "author": "haibiandefengshu",
       "credits": "插件由 haibiandefengshu 提交（PR #15，0.8.3 修复人格 ID 覆盖与长度问题并补齐 104 项测试）；索引由维护者重建"
@@ -488,7 +488,7 @@
       ],
       "addedAt": "2026-11-04",
       "runtime": "node",
-      "sha256": "31907c937f2fbfe90272e12bcfd5f9a14bbb203cb8116ce410422a130455f0b2",
+      "sha256": "d4479feed39b780b68b98091ec9b788c20646cd24b539b0f7be54c6cb7ce50b8",
       "frameworkVersion": ">=0.6.13",
       "category": "绘图与生图"
     },
@@ -530,7 +530,7 @@
         "agent:write"
       ],
       "path": "plugins/sticker-reply",
-      "sha256": "516a26ecc9947376a36d93b6bb91b18db5608ae87075a9f638fa34b00613dc53",
+      "sha256": "598b9ed3a322a0cd0122052bef1a9f786917f2045f8e837a41aa30d84f28c96e",
       "category": "媒体与内容",
       "author": "haibiandefengshu",
       "credits": "插件由 haibiandefengshu 提交（PR #16 首发，PR #17 升级 0.2.10 修复目录迁移丢图与链接绕过）；索引分类与署名由维护者补齐",
@@ -558,7 +558,7 @@
       ],
       "addedAt": "2026-11-07",
       "runtime": "node",
-      "sha256": "25ccabc1b702a7704d194bb9d26f6b3f1413fe4603e5f772bc9e91eace12c4f1",
+      "sha256": "777ec3168b25a6737125e3b6326a8fec5a0b8fe28fe609a9096aeb0ac61d9553",
       "frameworkVersion": ">=1.0.0",
       "category": "游戏与娱乐"
     },
@@ -581,7 +581,7 @@
       ],
       "addedAt": "2026-11-09",
       "runtime": "node",
-      "sha256": "44f36d30482b3ef0b71005ef896be062559b5bd53198a2f8cc7c52df3e875df4",
+      "sha256": "ff433bccc80a43cbcd4aba22b7560833b1578f87af13d74699dc6ad574df8747",
       "frameworkVersion": ">=0.8.6",
       "category": "群管与效率"
     }

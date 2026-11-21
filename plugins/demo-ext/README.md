@@ -277,5 +277,5 @@ node scripts/build-index.mjs --check    # CI 用：索引与目录必须一致
 
 ## 许可
 
-MIT。写法参考了本仓 `examples/hello-stdio`（最小 MCP server）、`plugins/bili`（一个真实的只读扩展）
+MIT。写法参考了 `plugins/bili`（一个真实的只读扩展）
 与 `plugins/demo-x`（框架插件的教学写法）。
