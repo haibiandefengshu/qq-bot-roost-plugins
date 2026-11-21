@@ -563,6 +563,21 @@
       "category": "游戏与娱乐"
     },
     {
+      "id": "voice-reply",
+      "name": "语音回复",
+      "version": "1.1.6",
+      "description": "角色语音合成、台词库与试听；依赖 GPT-SoVITS v2 服务和角色模型，由聊天工具触发",
+      "tags": [
+        "AI",
+        "工具"
+      ],
+      "kind": "dsh-extension",
+      "runtime": "mcp",
+      "scopes": [],
+      "path": "plugins/voice-reply",
+      "sha256": "1e7cb362a38b2fccdeb56b38371b206e927469310cfbc25a288608bc4cc49107"
+    },
+    {
       "id": "weather-card",
       "name": "天气播报",
       "version": "1.0.3",
