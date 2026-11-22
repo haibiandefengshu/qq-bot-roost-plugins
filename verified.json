@@ -1,6 +1,5 @@
 {
   "_doc": "插件分级：official=官方维护 / reviewed=我们复核过 / self=作者自证。没列出的就是未验证。",
-  "ai-chat": "official",
   "ai-native": "official",
   "anime-img": "official",
   "demo-x": "official",
