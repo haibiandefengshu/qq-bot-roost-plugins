@@ -350,12 +350,19 @@ async function build() {
 /**
  * 读 `deps/manifest.json`，算出每个包的 sha256 与体积。
  *
- * 为什么清单是手写的、哈希是算的：版本号与文件名是人的决定（要跟着框架
+ * 两种条目：
+ *   · `packages` —— 零依赖单包（`ws` / `silk-wasm`），一个 tarball 解出来就能用；
+ *   · `bundles`  —— 带传递依赖的整棵树（`qrcode` 有 29 个包），每个包一个
+ *     tarball，装的时候**平铺**进同一个 `node_modules/`（npm 的 hoisted 布局）。
+ *
+ * 为什么清单是手写的、哈希是算的：版本号与文件名是人的决定（要跟着宿主
  * 白名单的版本范围走），哈希不是——手抄一次哈希就多一个出错的地方。
+ * bundle 的清单也别手写，用 `scripts/pack-bundle.mjs` 生成。
+ *
  * 文件缺失直接抛错，不能静默跳过：`index.json` 里少一条，用户那边就是
  * 「镜像里没有这个包」，而我们会以为已经发布了。
  *
- * @returns {Promise<Array<{name:string,version:string,path:string,sha256:string,size:number,license?:string}>>}
+ * @returns {Promise<Array<object>>}
  */
 async function readDeps() {
   let manifest;
@@ -366,26 +373,69 @@ async function readDeps() {
     if (e.code === 'ENOENT') return [];
     throw new Error(`deps/manifest.json 读不出：${e.message}`);
   }
+
+  /** 读一个 tgz 的字节；缺文件立刻抛 */
+  const readOne = async (rel, owner) => {
+    const buf = await fs.readFile(path.join(DEPS, rel)).catch(() => null);
+    if (!buf) throw new Error(`deps/${rel} 不存在（manifest 里声明了 ${owner}）`);
+    return { buf, hash: createHash('sha256').update(buf).digest('hex') };
+  };
+
   const list = [];
   for (const p of manifest.packages ?? []) {
     if (!p?.name || !p?.version || !p?.file) {
       throw new Error(`deps/manifest.json 里有条目缺 name/version/file：${JSON.stringify(p)}`);
     }
-    const buf = await fs.readFile(path.join(DEPS, p.file)).catch(() => null);
-    if (!buf) throw new Error(`deps/${p.file} 不存在（manifest 里声明了 ${p.name}@${p.version}）`);
+    const { buf, hash } = await readOne(p.file, `${p.name}@${p.version}`);
     list.push({
       name: p.name,
       version: p.version,
       path: `deps/${p.file}`,
-      sha256: createHash('sha256').update(buf).digest('hex'),
+      sha256: hash,
       size: buf.length,
       ...(p.license ? { license: p.license } : {}),
     });
   }
+
+  for (const b of manifest.bundles ?? []) {
+    if (!b?.name || !b?.version || !b?.dir) {
+      throw new Error(`deps/manifest.json 的 bundles 条目缺 name/version/dir：${JSON.stringify(b)}`);
+    }
+    if (!Array.isArray(b.packages) || !b.packages.length) {
+      throw new Error(`bundle ${b.name} 没有 packages：空树发布出去等于告诉用户「有」却装不上`);
+    }
+    const packages = [];
+    for (const p of b.packages) {
+      if (!p?.name || !p?.version || !p?.file) {
+        throw new Error(`bundle ${b.name} 里有条目缺 name/version/file：${JSON.stringify(p)}`);
+      }
+      const rel = `${b.dir}/${p.file}`;
+      const { buf, hash } = await readOne(rel, `${b.name} → ${p.name}@${p.version}`);
+      packages.push({
+        name: p.name,
+        version: p.version,
+        path: `deps/${rel}`,
+        sha256: hash,
+        size: buf.length,
+        ...(p.license ? { license: p.license } : {}),
+      });
+    }
+    list.push({
+      name: b.name,
+      version: b.version,
+      /** `bundle` = 多包平铺；没有这个字段＝单包。宿主据此走不同的安装分支 */
+      kind: 'bundle',
+      ...(b.license ? { license: b.license } : {}),
+      ...(b.why ? { why: b.why } : {}),
+      packages,
+    });
+  }
+
   return list.sort((a, b) => a.name.localeCompare(b.name));
 }
 
-/** 只比「脚本该管的部分」：忽略 updated（天天在变）和字段顺序 */function diff(prev, next) {
+/** 只比「脚本该管的部分」：忽略 updated（天天在变）和字段顺序 */
+function diff(prev, next) {
   const problems = [];
   const byId = new Map((prev.plugins ?? []).map((p) => [p.id, p]));
   for (const p of next.plugins) {
@@ -424,6 +474,25 @@ async function readDeps() {
     const old = oldDeps.get(d.name);
     if (!old) { problems.push(`依赖 ${d.name}: 索引里没有这一条`); continue; }
     oldDeps.delete(d.name);
+    /** bundle 没有顶层 path/sha256，要逐个子包比——只比 version 会漏掉「换了某个子包」 */
+    if (Array.isArray(d.packages)) {
+      const op = Array.isArray(old.packages) ? old.packages : [];
+      if (!op.length) { problems.push(`依赖 ${d.name}: 索引里还是单包形态，实际已是 bundle`); continue; }
+      const byName = new Map(op.map((p) => [p.name, p]));
+      for (const p of d.packages) {
+        const o = byName.get(p.name);
+        if (!o) { problems.push(`依赖 ${d.name}/${p.name}: 索引里没有这一条`); continue; }
+        byName.delete(p.name);
+        for (const k of ['version', 'sha256', 'path']) {
+          if (String(o[k] ?? '') !== String(p[k] ?? '')) {
+            problems.push(`依赖 ${d.name}/${p.name}: ${k} 索引里是 ${o[k] ?? '(空)'}，实际是 ${p[k] ?? '(空)'}`);
+          }
+        }
+      }
+      for (const n of byName.keys()) problems.push(`依赖 ${d.name}/${n}: 索引里有，deps/ 下已经没有`);
+      continue;
+    }
+    if (Array.isArray(old.packages)) { problems.push(`依赖 ${d.name}: 索引里是 bundle 形态，实际已是单包`); continue; }
     for (const k of ['version', 'path', 'sha256', 'size']) {
       if (String(old[k] ?? '') !== String(d[k] ?? '')) {
         problems.push(`依赖 ${d.name}: ${k} 索引里是 ${old[k] ?? '(空)'}，实际是 ${d[k] ?? '(空)'}`);
@@ -466,5 +535,10 @@ for (const p of result.out.plugins) {
   console.log(`  - ${p.id}${p.version ? ` v${p.version}` : ''}（${p.runtime}）${p.sha256 ? '' : '  ⚠ 无 sha256'}`);
 }
 for (const d of result.out.deps ?? []) {
+  if (Array.isArray(d.packages)) {
+    const kb = Math.round(d.packages.reduce((s, p) => s + (Number(p.size) || 0), 0) / 1024);
+    console.log(`  · 依赖镜像 ${d.name}@${d.version}（${d.packages.length} 个包平铺，${kb}KB）`);
+    continue;
+  }
   console.log(`  · 依赖镜像 ${d.name}@${d.version}（${Math.round(d.size / 1024)}KB，sha256 ${d.sha256.slice(0, 12)}…）`);
 }
