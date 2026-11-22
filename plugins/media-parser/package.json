@@ -1,0 +1,13 @@
+{
+  "name": "roost-media-parser",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Roost 原生流媒体聚合解析插件",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "test": "node --test test/*.mjs"
+  }
+}
