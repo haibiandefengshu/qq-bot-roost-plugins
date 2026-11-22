@@ -2,7 +2,7 @@
   "schema": 2,
   "repo": "roost-qq/qq-bot-roost-plugins",
   "branch": "main",
-  "updated": "2026-11-21",
+  "updated": "2026-11-22",
   "plugins": [
     {
       "id": "ai-chat",
@@ -184,12 +184,12 @@
     {
       "id": "douluo",
       "name": "斗罗大陆",
-      "version": "0.2.2",
+      "version": "0.2.3",
       "description": "斗罗大陆文字游戏：内容全部在面板可编辑，数据用 SQLite",
       "tags": [],
       "runtime": "node",
       "path": "plugins/douluo",
-      "sha256": "6dd90600523a3273a115f2ffc6fcbccde3951e357571e64a60fd6e2085e62710",
+      "sha256": "cecf315c80d5dd56c9adc7fb2320659ec88e0d7d9fa1e81f922f28b3cc186bd0",
       "category": "游戏与娱乐"
     },
     {

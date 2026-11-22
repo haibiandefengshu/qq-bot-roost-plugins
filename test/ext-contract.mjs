@@ -126,12 +126,17 @@ for (const id of extIds) {
   });
 }
 
-test('每个插件都有主分类，且 categories.json 与 plugins/ 双向对齐', () => {
+test('categories.json 与 plugins/ 对齐：表内必须对上，表外允许退回 tag', () => {
   const cats = JSON.parse(fs.readFileSync(path.join(ROOT, 'categories.json'), 'utf8'));
   const map = new Map(Object.entries(cats).filter(([k]) => !k.startsWith('_')));
 
   for (const row of rows) {
-    assert.ok(map.has(row.id), `${row.id} 没在 categories.json 里，市场会退回用第一个 tag 当分类`);
+    // categories.json 是维护者侧的组织表，fork 投稿按约定不能碰它（pr-guard
+    // 的路径红线明确拦 categories.json）。新插件合入前表里没有它是预期状态：
+    // build-index.mjs 只 warn，框架 categoryOf() 退回第一个 tag。这里不把
+    // warn 升级成 CI 红，否则任何外部投稿都会因为「还没排进分类表」而合不了。
+    // 维护者在插件合入后补一行 categories.json 即可恢复显式分类。
+    if (!map.has(row.id)) continue;
     assert.ok(String(row.category ?? '').trim(), `${row.id} 的索引条目没有 category，重跑 build-index.mjs`);
     assert.equal(row.category, map.get(row.id), `${row.id} 的索引分类与 categories.json 不一致`);
   }

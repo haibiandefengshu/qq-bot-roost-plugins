@@ -13,6 +13,14 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import crypto from 'node:crypto';
 
+/**
+ * 哈希算法版本。算法或跳过规则一改就 +1，并让框架的 src/hashdir.js 同步
+ * 带上同一个标记再发版。跨仓一致性测试据此区分「算法还没同步到框架」
+ * （warning + skip）和「两边标记一致却算出不同值」（硬失败）。
+ * 2 = 2026-11-21 起排除纯文档（.md / LICENSE）。
+ */
+export const HASH_ALGO = 2;
+
 /** 不参与哈希的东西：依赖目录、缓存、VCS/IDE 元数据（每台机器都不一样） */
 const SKIP_DIRS = new Set([
   'node_modules', '.venv', 'venv', '__pycache__', '.git', '.idea', '.vscode',

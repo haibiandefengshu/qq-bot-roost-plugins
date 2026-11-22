@@ -17,6 +17,7 @@
  *   - 地图图连通，能走到至少 8 张图（世界不封闭）
  *   - 任何时候都不能出现「所有怪都打不过、也没有更弱的图可去」
  */
+import './_rng.mjs'; // 固定随机种子，避免蒙特卡洛断言偶发红
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';

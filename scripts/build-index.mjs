@@ -87,6 +87,12 @@ async function readMeta(dir) {
       version: raw.version ? String(raw.version) : '',
       description: raw.shortDesc ?? raw.description ?? '',
       tags: Array.isArray(raw.tags) ? raw.tags : [],
+      /**
+       * author 只是市场搜索用的展示提示，不是署名依据（署名看 GitHub
+       * Contributors / PR 记录）。新条目取插件自述；存量条目的值不在这里
+       * 覆盖——它不属于 STRUCT_FIELDS，merge 时会保留 base 索引里的值。
+       */
+      ...(raw.author ? { author: String(raw.author) } : {}),
       frameworkVersion: raw.frameworkVersion ?? '',
       ...(isExt ? { kind: 'dsh-extension', runtime: 'mcp' } : { runtime: raw.runtime ?? 'python' }),
       /**

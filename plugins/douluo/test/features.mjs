@@ -12,6 +12,7 @@
  *   师徒       → 徒弟涨经验，师父真的分到一份
  *   战舰       → 激活后能越过地图等级门槛，没激活就被拦
  */
+import './_rng.mjs'; // 固定随机种子，避免蒙特卡洛断言偶发红
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';

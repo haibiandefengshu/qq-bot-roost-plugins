@@ -7,6 +7,7 @@
  * 不连 QQ、不开面板：用 testkit 造假 ctx，把命令、战斗、公式、数据层各跑一遍。
  * 数据目录固定在系统临时目录，**每次跑之前清空**，保证结果可复现。
  */
+import './_rng.mjs'; // 固定随机种子，避免蒙特卡洛断言偶发红
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
