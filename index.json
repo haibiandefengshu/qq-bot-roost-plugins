@@ -19,7 +19,6 @@
       "path": "plugins/ai-chat",
       "sha256": "c0b73e466380d2bedc6a2a382107483c9a5722ba7fa3fa0e2182342d1e80bb57",
       "author": "tdcq9594",
-      "addedAt": "2026-10-24",
       "verified": "official",
       "category": "AI 对话"
     },
@@ -41,7 +40,6 @@
       "commands": [
         "ai"
       ],
-      "addedAt": "2026-10-27",
       "verified": "official",
       "category": "AI 对话"
     },
@@ -67,7 +65,6 @@
         "图库",
         "清图库"
       ],
-      "addedAt": "2026-10-25",
       "verified": "official",
       "category": "绘图与生图"
     },
@@ -105,7 +102,6 @@
       "version": "1.0.3",
       "description": "发「ai绘图+一只猫」，它就用你电脑上的 ComfyUI 画出来并直接发到会话",
       "author": "haibiandefengshu",
-      "credits": "插件由 haibiandefengshu 提交（PR #4），1.0.3 由 PR #7 更新",
       "path": "plugins/comfy-draw",
       "tags": [
         "AI 绘图",
@@ -116,7 +112,6 @@
       "commands": [
         "绘图"
       ],
-      "addedAt": "2026-11-07",
       "runtime": "node",
       "sha256": "892cbc7ec1db9460475bad25c289737fe264cff203859700c40111056e1667bf",
       "frameworkVersion": ">=0.6.13",
@@ -154,7 +149,6 @@
       "commands": [
         "demo"
       ],
-      "addedAt": "2026-10-24",
       "verified": "official",
       "frameworkVersion": ">=1.0.0",
       "category": "开发示例"
@@ -176,7 +170,6 @@
         "rank",
         "reset"
       ],
-      "addedAt": "2026-10-23",
       "sha256": "8dfd8c402a368655546fe4f00896a60ddde0e503885f98cf83613fb4e10647ae",
       "verified": "official",
       "category": "游戏与娱乐"
@@ -207,7 +200,6 @@
       "commands": [
         "echo"
       ],
-      "addedAt": "2026-10-23",
       "sha256": "815d28c030aca24a36ef0386c63766560249268fa41fe9385794bf424307e0c0",
       "verified": "official",
       "category": "开发示例"
@@ -233,7 +225,6 @@
         "群信息",
         "群管状态"
       ],
-      "addedAt": "2026-10-24",
       "verified": "official",
       "category": "群管与效率"
     },
@@ -254,7 +245,6 @@
         "pyinfo",
         "pyadmin"
       ],
-      "addedAt": "2026-10-23",
       "sha256": "92c3b313ea672aa06595dac1c7f92bcfffb2dd33bc68b8abd7540e044c9a4dfc",
       "verified": "official",
       "category": "开发示例"
@@ -276,7 +266,6 @@
       "sha256": "d5d1be38a535f6ed633026f1d688fde8a317302378e657dd3af8256d11af5f2a",
       "verified": "official",
       "author": "tdcq9594",
-      "addedAt": "2026-11-14",
       "category": "绘图与生图"
     },
     {
@@ -295,7 +284,6 @@
       "commands": [
         "imgbed"
       ],
-      "addedAt": "2026-10-24",
       "verified": "official",
       "category": "媒体与内容"
     },
@@ -305,7 +293,6 @@
       "version": "1.0.0",
       "description": "群里发禁漫 ID（jm123456 / 18comic 链接），后台下载整本、还原竖切打乱、合成 PDF 并发回会话",
       "author": "haibiandefengshu",
-      "credits": "插件由 haibiandefengshu 提交（PR #3）",
       "path": "plugins/jm-comic",
       "tags": [
         "漫画",
@@ -316,7 +303,6 @@
       "commands": [
         "jm"
       ],
-      "addedAt": "2026-11-05",
       "runtime": "node",
       "sha256": "184ebc3a5b09541d9c892d92c5a122f82c072e61d176b140748038c0f751180d",
       "frameworkVersion": ">=0.6.13",
@@ -326,7 +312,7 @@
       "id": "kun",
       "name": "养鲲",
       "version": "4.1.4",
-      "description": "开局一条鲲，进化全靠吞：养成、道具、拍卖行、BOSS、群主互动（24 个命令）",
+      "description": "开局一条鲲，进化全靠吞：养成、道具、拍卖行、BOSS、群主互动（24 个命令）；玩法设计来自 Agam《简单的养鲲游戏》(CQP, 2020)",
       "author": "tdcq9594",
       "path": "plugins/kun",
       "runtime": "node",
@@ -374,8 +360,6 @@
         "当前游戏",
         "报名"
       ],
-      "addedAt": "2026-10-23",
-      "credits": "玩法设计来自 Agam《简单的养鲲游戏》(CQP, 2020)",
       "sha256": "a87a7791c397cf4aeee62b4f600eedd1733adc7d2616c9349171f4af28d48625",
       "frameworkVersion": ">=0.6.0",
       "verified": "official",
@@ -387,7 +371,6 @@
       "version": "1.0.1",
       "description": "视频抽帧、大图压小，让会回话的 AI 真能看清消息里的图和视频",
       "author": "haibiandefengshu",
-      "credits": "插件由 haibiandefengshu 提交（PR #1）",
       "path": "plugins/media-vision",
       "tags": [
         "识图",
@@ -399,7 +382,6 @@
       "commands": [
         "识图"
       ],
-      "addedAt": "2026-11-04",
       "runtime": "node",
       "sha256": "06e6aa9790236ca43344c60a1d6c70dec95842e68c5f84d9d078f0745c1f8635",
       "frameworkVersion": ">=0.6.13",
@@ -411,7 +393,6 @@
       "version": "0.5.0",
       "description": "按真实 QQ 会话慢慢积累有证据的行为习惯，写成一份「成长人格」并切到那个会话；宿主删了内置生长后由扩展自己实现",
       "author": "haibiandefengshu",
-      "credits": "插件由 haibiandefengshu 提交（PR #13）",
       "tags": [
         "人格",
         "成长",
@@ -428,7 +409,6 @@
         "agent:write"
       ],
       "path": "plugins/persona-grow",
-      "addedAt": "2026-11-17",
       "sha256": "c1e84d73233f4e7a0edf3ebdcc1d1c1f3b213e9bd30d23a19b96ea041117c6f1",
       "category": "人格与人设"
     },
@@ -438,7 +418,6 @@
       "version": "1.3.1",
       "description": "给指定的人（如主人）单独换一套人设卡，支持正则条件分支；其他人仍是原人设",
       "author": "haibiandefengshu",
-      "credits": "插件由 haibiandefengshu 提交（PR #11）；文档措辞（注入点「中间件 → 监听器」、测试命令目录、框架版本下限）由维护者在合并时订正",
       "path": "plugins/persona-scope",
       "tags": [
         "人设",
@@ -449,7 +428,6 @@
       "commands": [
         "人设"
       ],
-      "addedAt": "2026-11-12",
       "runtime": "node",
       "sha256": "bac880ff01cb22dc8a471fb00f3c734b8602d9f7851a2a2ba5f431d65f981f68",
       "frameworkVersion": ">=0.6.18",
@@ -470,8 +448,7 @@
       "path": "plugins/persona-scope-ext",
       "sha256": "99122afecb087c9705c18544654afd8e823a3f66af510c518379666d1681fd88",
       "category": "人格与人设",
-      "author": "haibiandefengshu",
-      "credits": "插件由 haibiandefengshu 提交（PR #15，0.8.3 修复人格 ID 覆盖与长度问题并补齐 104 项测试）；索引由维护者重建"
+      "author": "haibiandefengshu"
     },
     {
       "id": "pixiv-pid",
@@ -479,14 +456,12 @@
       "version": "1.0.1",
       "description": "群里出现「pid 12345678」就把那张 Pixiv 插画取回来发到会话，带缓存防重",
       "author": "haibiandefengshu",
-      "credits": "插件由 haibiandefengshu 提交（PR #2）",
       "path": "plugins/pixiv-pid",
       "tags": [
         "Pixiv",
         "插画",
         "发图"
       ],
-      "addedAt": "2026-11-04",
       "runtime": "node",
       "sha256": "d4479feed39b780b68b98091ec9b788c20646cd24b539b0f7be54c6cb7ce50b8",
       "frameworkVersion": ">=0.6.13",
@@ -508,7 +483,6 @@
       "commands": [
         "card"
       ],
-      "addedAt": "2026-10-24",
       "verified": "official",
       "category": "媒体与内容"
     },
@@ -533,11 +507,9 @@
       "sha256": "598b9ed3a322a0cd0122052bef1a9f786917f2045f8e837a41aa30d84f28c96e",
       "category": "媒体与内容",
       "author": "haibiandefengshu",
-      "credits": "插件由 haibiandefengshu 提交（PR #16 首发，PR #17 升级 0.2.10 修复目录迁移丢图与链接绕过）；索引分类与署名由维护者补齐",
       "commands": [
         "sticker_decide"
-      ],
-      "addedAt": "2026-11-18"
+      ]
     },
     {
       "id": "trpg-forwarder",
@@ -545,7 +517,6 @@
       "version": "0.6.5",
       "description": "把群消息桥给本机 dsh-trpg，再把骰点与剧情直发回群；单独装它不会回复",
       "author": "haibiandefengshu",
-      "credits": "插件由 haibiandefengshu 提交（PR #5），0.6.5 由 PR #8 更新",
       "path": "plugins/trpg-forwarder",
       "tags": [
         "跑团",
@@ -556,7 +527,6 @@
       "commands": [
         "trpg"
       ],
-      "addedAt": "2026-11-07",
       "runtime": "node",
       "sha256": "777ec3168b25a6737125e3b6326a8fec5a0b8fe28fe609a9096aeb0ac61d9553",
       "frameworkVersion": ">=1.0.0",
@@ -583,7 +553,6 @@
       "version": "1.0.3",
       "description": "问「上海天气」「今天天气怎么样」就回一张天气卡图片，支持多地区、四大天气源与每日定时播报",
       "author": "haibiandefengshu",
-      "credits": "插件由 haibiandefengshu 提交（PR #9），1.0.2 由 PR #10 更新，1.0.3 由 PR #12 更新",
       "path": "plugins/weather-card",
       "tags": [
         "天气",
@@ -594,7 +563,6 @@
       "commands": [
         "天气"
       ],
-      "addedAt": "2026-11-09",
       "runtime": "node",
       "sha256": "ff433bccc80a43cbcd4aba22b7560833b1578f87af13d74699dc6ad574df8747",
       "frameworkVersion": ">=0.8.6",

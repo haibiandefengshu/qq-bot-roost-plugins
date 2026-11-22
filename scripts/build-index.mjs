@@ -135,11 +135,11 @@ async function readMeta(dir) {
  * 索引里的字段分两类：
  *   1. 结构字段（id / version / path / runtime / sha256 / frameworkVersion）
  *      —— 必须与仓库一致，否则装错版本、找不到目录、校验对不上，一律以磁盘为准。
- *   2. 展示字段（name / description / tags / author / commands / addedAt /
- *      credits）—— 手写的，往往比代码里的短描述更完整（比如 kun 的
- *      「24 个命令」）。脚本不该改文案，只给新插件补默认值。
- *      其中 `author` 一律写插件作者本人：社区投稿写 PR 发起人的 GitHub 用户名，
- *      维护者不占署名。
+ *   2. 展示字段（name / description / tags / author / commands）——
+ *      手写的，往往比代码里的短描述更完整（比如 kun 的「24 个命令」）。
+ *      脚本不该改文案，只给新插件补默认值。`author` 只是市场搜索用的
+ *      GitHub 用户名：新条目取 plugin.json.author，存量条目沿用原值，
+ *      不是贡献署名。credits / addedAt / contributors 已退役，索引里不再保留。
  *
  * 早期版本是整份覆盖，结果跑一次「更新索引」就把 tags 清空、把描述里的
  * 补充说明抹掉，看起来像升级，实际是数据丢失。

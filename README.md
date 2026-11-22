@@ -82,10 +82,10 @@ node scripts/check-index-submission.mjs   # 非 fork PR 会跳过
 所以反复跑结果一致，不会把别人写过的文案冲掉。新插件自动补一条，
 删掉的插件自动移除。
 
-`author` 只是市场搜索用的展示提示（来自新条目的 `plugin.json.author`），
-**不是署名依据**。贡献归属看 GitHub Contributors 与各 PR 记录；README 不再
-维护贡献者表。存量条目里的 `author` / `credits` / `addedAt` 保持原值，
-投稿人不能改。
+`author` 只保留 GitHub 用户名，作为市场搜索用的展示提示
+（新条目取 `plugin.json.author`，存量条目沿用原值），**不是署名依据**。
+贡献归属看 GitHub Contributors 与各 PR 记录。`credits` / `addedAt` /
+`contributors` 这些旧流程字段已从索引退役：投稿人不能新增，存量值也已清理。
 
 `version` 要写成字面量（`version: '1.2.3'`）。写成常量的话，
 `check-versions.mjs` 和本脚本都读不到——CI 会直接判「读不到 version」。
