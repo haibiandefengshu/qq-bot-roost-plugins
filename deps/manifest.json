@@ -1,0 +1,20 @@
+{
+  "schema": 1,
+  "note": "能力页「依赖」卡的备选下载源。npm 装不上（没有 npm、源不通、装完验不过）时，框架从这里取包直接解包，不经过 npm。改完必须跑 node scripts/build-index.mjs 重算索引。",
+  "packages": [
+    {
+      "name": "ws",
+      "version": "8.23.0",
+      "file": "ws-8.23.0.tgz",
+      "license": "MIT",
+      "why": "WebSocket 服务端，OneBot 兼容模式与宿主协议都用它"
+    },
+    {
+      "name": "silk-wasm",
+      "version": "3.7.1",
+      "file": "silk-wasm-3.7.1.tgz",
+      "license": "MIT",
+      "why": "WAV → SILK，发语音才需要"
+    }
+  ]
+}
