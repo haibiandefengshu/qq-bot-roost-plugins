@@ -568,5 +568,23 @@
       "frameworkVersion": ">=0.8.6",
       "category": "群管与效率"
     }
+  ],
+  "deps": [
+    {
+      "name": "silk-wasm",
+      "version": "3.7.1",
+      "path": "deps/silk-wasm-3.7.1.tgz",
+      "sha256": "668087436d9a7160544eaefd256ce774697fb39c4ff1985897c5bb9c45580df0",
+      "size": 105403,
+      "license": "MIT"
+    },
+    {
+      "name": "ws",
+      "version": "8.23.0",
+      "path": "deps/ws-8.23.0.tgz",
+      "sha256": "b8bd105a274ae9ca114f8c6ce4d9dbb0c764fe5118ba633c557e1703e297c587",
+      "size": 35696,
+      "license": "MIT"
+    }
   ]
 }

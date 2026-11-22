@@ -22,10 +22,13 @@
  */
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import { createHash } from 'node:crypto';
 import { hashDir } from './hashdir.mjs';
 
 const ROOT = path.resolve(import.meta.dirname, '..');
 const PLUGINS = path.join(ROOT, 'plugins');
+/** 外接依赖的备选下载源（见 deps/README.md）。没有这个目录就是「没配镜像」 */
+const DEPS = path.join(ROOT, 'deps');
 const TARGET = path.join(ROOT, 'index.json');
 
 /**
@@ -327,6 +330,8 @@ async function build() {
     if (!categories.has(p.id)) console.warn(`  ${p.id} 没有分类，市场会退回用第一个 tag（请在 categories.json 里补一行）`);
   }
 
+  const depsList = await readDeps();
+
   return {
     out: {
       schema: Math.max(SCHEMA_VERSION, Number(prev.schema) || 0),
@@ -334,14 +339,53 @@ async function build() {
       branch: prev.branch ?? 'main',
       updated: new Date().toISOString().slice(0, 10),
       plugins: merged,
+      /** 空数组不写：老索引没有这个键，写个 `[]` 只会让 diff 噪声变大 */
+      ...(depsList.length ? { deps: depsList } : {}),
     },
     prev,
     prevEol,
   };
 }
 
-/** 只比「脚本该管的部分」：忽略 updated（天天在变）和字段顺序 */
-function diff(prev, next) {
+/**
+ * 读 `deps/manifest.json`，算出每个包的 sha256 与体积。
+ *
+ * 为什么清单是手写的、哈希是算的：版本号与文件名是人的决定（要跟着框架
+ * 白名单的版本范围走），哈希不是——手抄一次哈希就多一个出错的地方。
+ * 文件缺失直接抛错，不能静默跳过：`index.json` 里少一条，用户那边就是
+ * 「镜像里没有这个包」，而我们会以为已经发布了。
+ *
+ * @returns {Promise<Array<{name:string,version:string,path:string,sha256:string,size:number,license?:string}>>}
+ */
+async function readDeps() {
+  let manifest;
+  try {
+    manifest = JSON.parse(await fs.readFile(path.join(DEPS, 'manifest.json'), 'utf8'));
+  } catch (e) {
+    /** 没有 deps/ 目录（或还没建清单）＝没配镜像，不是错误 */
+    if (e.code === 'ENOENT') return [];
+    throw new Error(`deps/manifest.json 读不出：${e.message}`);
+  }
+  const list = [];
+  for (const p of manifest.packages ?? []) {
+    if (!p?.name || !p?.version || !p?.file) {
+      throw new Error(`deps/manifest.json 里有条目缺 name/version/file：${JSON.stringify(p)}`);
+    }
+    const buf = await fs.readFile(path.join(DEPS, p.file)).catch(() => null);
+    if (!buf) throw new Error(`deps/${p.file} 不存在（manifest 里声明了 ${p.name}@${p.version}）`);
+    list.push({
+      name: p.name,
+      version: p.version,
+      path: `deps/${p.file}`,
+      sha256: createHash('sha256').update(buf).digest('hex'),
+      size: buf.length,
+      ...(p.license ? { license: p.license } : {}),
+    });
+  }
+  return list.sort((a, b) => a.name.localeCompare(b.name));
+}
+
+/** 只比「脚本该管的部分」：忽略 updated（天天在变）和字段顺序 */function diff(prev, next) {
   const problems = [];
   const byId = new Map((prev.plugins ?? []).map((p) => [p.id, p]));
   for (const p of next.plugins) {
@@ -369,6 +413,24 @@ function diff(prev, next) {
     }
   }
   for (const id of byId.keys()) problems.push(`${id}: 索引里有，但 plugins/ 下已经没有这个目录`);
+
+  /**
+   * `deps` 也要比，理由和 `verified` 一样：它是脚本能算出来、索引里会过期的
+   * 东西。`deps/*.tgz` 换了一版忘了重跑，用户拿到的 sha256 对不上，
+   * 镜像回退会稳定地失败——而且失败信息看起来像「镜像坏了」。
+   */
+  const oldDeps = new Map((prev.deps ?? []).map((d) => [d.name, d]));
+  for (const d of next.deps ?? []) {
+    const old = oldDeps.get(d.name);
+    if (!old) { problems.push(`依赖 ${d.name}: 索引里没有这一条`); continue; }
+    oldDeps.delete(d.name);
+    for (const k of ['version', 'path', 'sha256', 'size']) {
+      if (String(old[k] ?? '') !== String(d[k] ?? '')) {
+        problems.push(`依赖 ${d.name}: ${k} 索引里是 ${old[k] ?? '(空)'}，实际是 ${d[k] ?? '(空)'}`);
+      }
+    }
+  }
+  for (const name of oldDeps.keys()) problems.push(`依赖 ${name}: 索引里有，但 deps/ 下已经没有这个包`);
   return problems;
 }
 
@@ -383,7 +445,7 @@ if (checkOnly) {
     console.error('\n跑 node scripts/build-index.mjs 重新生成。');
     process.exit(1);
   }
-  console.log(`✓ 索引一致（${result.out.plugins.length} 个插件）`);
+  console.log(`✓ 索引一致（${result.out.plugins.length} 个插件${result.out.deps ? `、${result.out.deps.length} 个依赖镜像` : ''}）`);
   process.exit(0);
 }
 
@@ -402,4 +464,7 @@ console.log(`已生成 ${path.relative(ROOT, TARGET)}`);
 console.log(`  ${result.out.plugins.length} 个插件${result.out.repo ? `，repo=${result.out.repo}` : '（没有 repo，安装会失败）'}`);
 for (const p of result.out.plugins) {
   console.log(`  - ${p.id}${p.version ? ` v${p.version}` : ''}（${p.runtime}）${p.sha256 ? '' : '  ⚠ 无 sha256'}`);
+}
+for (const d of result.out.deps ?? []) {
+  console.log(`  · 依赖镜像 ${d.name}@${d.version}（${Math.round(d.size / 1024)}KB，sha256 ${d.sha256.slice(0, 12)}…）`);
 }

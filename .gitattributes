@@ -10,5 +10,7 @@
 *.webp binary
 *.ico binary
 *.zip binary
+# deps/ 里的 npm 包：哈希必须逐字节稳定，任何换行符转换都会让它变（见 deps/README.md）
+*.tgz binary
 *.woff binary
 *.woff2 binary
