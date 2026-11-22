@@ -271,7 +271,7 @@ cd douluo/dsh-roost
 node --input-type=module -e "...validateManifest(plugin.json)..."
 # → validateManifest true、normalizeConfigSpec 18 字段、normalizeUiSpec 5 动作 / inprocess
 # → envOf() 给出 ROOST_EXT_CONFIG + ROOST_EXT_SECRET_APIKEY
-cd ../qq-bot-roost-plugins && node scripts/build-index.mjs --check   # ✓ 22 个插件一致
+cd ../qq-bot-roost-plugins && node scripts/build-index.mjs --check   # ✓ 索引一致（数量以当前 index.json 为准）
 ```
 
 换真密钥之后第一次装进宿主，请务必点一次面板的「测试生图」或跑 `live.mjs`：

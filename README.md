@@ -51,8 +51,9 @@ index.json 的 sha256  ──►  用户下载插件目录  ──►  本地重
 
 > 2026-11-11 起插件索引不再签名（原 `index.json.sig` / `trust-public.pem` /
 > 手动签名 workflow 均已移除）。原因是个人仓无法给 GitHub Actions 配 bypass，
-> 分支保护与机器人回推只能二选一。2026-11-20 起选了后者：去掉 required PR /
-> required checks 让 bot 能回推生成物，投稿门禁移到 `pr-guard.yml` + 人工审。
+> 签名与机器人回推只能二选一。2026-11-22 起改为投稿 PR 自带生成器产出的
+> `index.json`，bot 不再回写 main；分支保留四项必需检查，投稿门禁由
+> `pr-guard.yml` + `ci.yml` + 人工审共同把关。
 > **框架自更新的 `SHA256SUMS.sig` 签名不受影响，照旧保留。**
 
 ---

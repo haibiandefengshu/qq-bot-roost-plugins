@@ -152,7 +152,7 @@ const newHead = parent;
 
 const mergeMsg =
   `merge: ${pr.title}（PR #${num}）\n\n` +
-  `来自 @${login} 的投稿，提交身份已校正为作者本人。索引由维护者重建。`;
+  `来自 @${login} 的投稿，提交身份已校正为作者本人。投稿已随 PR 带上生成器产出的 index.json。`;
 
 if (dryRun) {
   say(`\n[dry-run] 会把 ${newHead.slice(0, 8)} 以 --no-ff 合进 main，不写任何东西。`);
