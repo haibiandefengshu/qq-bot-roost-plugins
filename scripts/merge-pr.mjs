@@ -14,7 +14,7 @@
  *
  * 2026-11-04 的 PR #2 就是这样：PR 由 `haibiandefengshu` 发起，
  * 但 commit 的 author 是 `jfzn <tdcq9594@users.noreply.github.com>`，
- * 结果 Contributors 里只有维护者。索引的 `credits` 能补署名，头像墙补不了，
+ * 结果 Contributors 里只有维护者。索引不再维护 credits 署名，头像墙补不了，
  * 只能从提交本身改——所以合并时统一校正成「PR 发起人」的身份。
  *
  * 2026-11-04 之前的做法是 `git checkout FETCH_HEAD -- plugins/<id>`：
@@ -23,7 +23,7 @@
  * 边界
  * ----
  * 只做「拉 + 校正身份 + merge」。**不 push、不重建索引**——
- * 索引和 credits 由合并后的 sync-artifacts.yml 自动生成，见 README「发版流程」。
+ * 投稿已随 PR 带上生成器产出的 index.json，sync-artifacts.yml 只校验。
  */
 
 import { execFileSync } from 'node:child_process';

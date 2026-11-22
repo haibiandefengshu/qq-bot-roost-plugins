@@ -9,10 +9,10 @@
  *
  *   1. 顶层 schema / repo / branch 必须与基准一致——否则投稿人能把安装源
  *      指到自己的 fork；
- *   2. contributors / credits / addedAt 是合并后由维护者流程写入的字段，
- *      投稿人不能自己塞；存量条目必须与基准逐字相同，新条目必须不存在；
- *   3. author 只是市场搜索用的展示提示，不是署名依据：存量条目保持基准
- *      值，新条目取 plugin.json.author（生成器从插件目录读出来的值）；
+ *   2. contributors / credits / addedAt 是已退役的旧流程字段，投稿人不能
+ *      自己塞回来；存量必须与基准一致，新条目必须不存在；
+ *   3. author 只是市场搜索用的 GitHub 用户名，不是署名依据：存量条目保持
+ *      基准值，新条目取 plugin.json.author（生成器从插件目录读出来的值）；
  *   4. 本次改动到的插件，其 name / description / tags / commands（以及新
  *      条目的 author）必须与「空索引 + 插件目录」重新生成的结果一致，
  *      防止 index.json 说一套、装下来是另一套。
