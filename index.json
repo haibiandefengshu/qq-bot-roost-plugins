@@ -366,6 +366,17 @@
       "category": "游戏与娱乐"
     },
     {
+      "id": "media-parser",
+      "name": "流媒体聚合解析",
+      "version": "0.1.0",
+      "description": "自动解析分享链接，按顺序发送视频、图集、音频与正文",
+      "tags": [],
+      "frameworkVersion": ">=1.1.5",
+      "runtime": "node",
+      "path": "plugins/media-parser",
+      "sha256": "2752e789d0404f6cb5fe1d5e07e88545503f11179a563360224b502eaa0380c2"
+    },
+    {
       "id": "media-vision",
       "name": "识图与看视频",
       "version": "1.0.1",

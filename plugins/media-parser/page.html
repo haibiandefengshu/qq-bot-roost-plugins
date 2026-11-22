@@ -1,0 +1,340 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>流媒体聚合解析管理</title>
+<style>
+:root{color-scheme:light dark;--bg:#f5f7fa;--card:#fff;--ink:#172536;--muted:#667789;--line:#dce3e9;--accent:#096b64;--danger:#ae3944;--soft:#eaf6f2}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.6 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1180px;margin:auto;padding:24px}h1{font-size:25px;line-height:1.3;margin:0 0 6px}h2{font-size:17px;margin:0 0 14px}p{margin:6px 0 14px}.muted,small{color:var(--muted)}.top{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:22px}.badge{font-size:12px;background:var(--soft);color:var(--accent);padding:5px 10px;border-radius:20px}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:20px;margin-bottom:18px}.wide{grid-column:1/-1}.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:16px 0}.metric{padding:12px;background:var(--bg);border-radius:8px}.metric strong{display:block;font-size:23px}.metric small{display:block}.row,.actions{display:flex;flex-wrap:wrap;align-items:center;gap:10px}.actions{margin-top:14px}button,input,select,textarea{font:inherit}button{cursor:pointer;border:1px solid var(--line);border-radius:7px;padding:7px 12px;background:var(--card);color:var(--ink)}button.primary{background:var(--accent);border-color:var(--accent);color:#fff}button.danger{color:var(--danger)}button:disabled{opacity:.5;cursor:wait}input[type=text],input[type=number],input[type=password],select,textarea{width:100%;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:6px;padding:8px}input[type=checkbox]{accent-color:var(--accent);margin-right:8px}.fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px 18px}.fields label{display:block}.fields label>span{display:block;font-size:12px;color:var(--muted);margin-bottom:4px}.toggle{display:flex!important;align-items:center;min-height:30px}.toggle span{display:inline!important;color:var(--ink)!important;font-size:14px!important}.full{grid-column:1/-1}textarea{min-height:150px;resize:vertical;font-family:ui-monospace,Consolas,monospace;font-size:12px}.preview-input{font-family:inherit;font-size:14px;min-height:76px}.notice{border-left:3px solid #d5a44a;background:var(--bg);padding:10px 13px;margin:12px 0;white-space:pre-wrap;overflow-wrap:anywhere}.error{color:var(--danger)}.success{color:var(--accent)}#feedback{position:sticky;top:0;z-index:2;padding:10px 14px;border:1px solid var(--line);background:var(--card);border-radius:8px;margin-bottom:14px;display:none}.platforms{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}.platform{display:flex;flex-direction:column;gap:4px}.platform label{font-size:13px}.platform small{font-size:11px}.scroll{overflow:auto}table{border-collapse:collapse;width:100%;font-size:12px}td,th{border-bottom:1px solid var(--line);padding:9px 7px;text-align:left;vertical-align:top}th{color:var(--muted);font-weight:500}td.url{min-width:160px;max-width:360px;overflow-wrap:anywhere}.status-line{white-space:pre-wrap;overflow-wrap:anywhere}pre{max-height:320px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;margin:10px 0;font:12px/1.6 ui-monospace,Consolas,monospace}details{margin-top:12px}summary{cursor:pointer;color:var(--accent)}#preview-result .item{padding:8px 10px;background:var(--bg);border-radius:6px;margin-top:8px;white-space:pre-wrap;overflow-wrap:anywhere}code{font:12px ui-monospace,Consolas,monospace}hr{border:0;border-top:1px solid var(--line);margin:16px 0}
+@media(max-width:850px){.platforms{grid-template-columns:repeat(3,minmax(0,1fr))}.grid{grid-template-columns:1fr}.metrics{grid-template-columns:repeat(2,1fr)}}@media(max-width:500px){main{padding:14px}.top{align-items:flex-start}.fields{grid-template-columns:1fr}.platforms{grid-template-columns:repeat(2,minmax(0,1fr))}.card{padding:15px}}
+@media(prefers-color-scheme:dark){:root{--bg:#121a23;--card:#192530;--ink:#e3ebf2;--muted:#9db0bf;--line:#304454;--accent:#67d4c1;--danger:#ff95a0;--soft:#193f3b}button.primary{color:#102925}}
+</style>
+</head>
+<body>
+<main>
+  <div class="top"><div><h1>流媒体聚合解析</h1><div class="muted">分享链接 → 本机解析 → 当前会话有序投递</div></div><span class="badge">Roost 原生插件 · v0.1.0</span></div>
+  <div id="feedback" role="status"></div>
+  <section class="card">
+    <div class="row"><h2 style="margin:0">引擎与任务</h2><span id="engine-badge" class="badge">读取中</span></div>
+    <div class="metrics">
+      <div class="metric"><strong id="running">—</strong><small>正在解析或发送</small></div>
+      <div class="metric"><strong id="waiting">—</strong><small>等待任务</small></div>
+      <div class="metric"><strong id="platform-count">31</strong><small>平台入口</small></div>
+      <div class="metric"><strong id="cache">—</strong><small>缓存 MiB</small></div>
+    </div>
+    <div id="engine-detail" class="status-line muted"></div>
+    <div id="restart-notice" class="notice" hidden>配置已保存。等待任务空闲后点击「空闲重启」使引擎设置生效。</div>
+    <div class="actions">
+      <button data-op="prepare" class="primary">准备依赖</button><button data-op="repair">修复依赖</button><button data-op="start">启动</button><button data-op="stop" class="danger">停止</button><button data-op="restart">空闲重启</button><button data-op="clean">清理未占用缓存</button><button id="refresh">刷新</button>
+    </div>
+    <div id="operations" class="muted" style="margin-top:10px"></div>
+    <details><summary>完整引擎诊断</summary><pre id="diagnostics"></pre></details>
+  </section>
+  <div class="grid">
+    <section class="card">
+      <h2>触发与投递</h2>
+      <form id="settings-form"><div class="fields">
+        <label class="toggle"><input type="checkbox" name="enabled"><span>启用自动解析</span></label>
+        <label class="toggle"><input type="checkbox" name="privateEnabled"><span>允许私聊解析</span></label>
+        <label class="toggle"><input type="checkbox" name="requireMention"><span>群聊要求 @</span></label>
+        <label class="toggle"><input type="checkbox" name="handleTextOnly"><span>接管天生纯文字链接</span></label>
+        <label class="toggle"><input type="checkbox" name="sendCaption"><span>发送标题与正文</span></label>
+        <label><span>音频输出</span><select name="audioMode"><option value="auto">自动：短语音，长音频文件</option><option value="voice">短音频优先语音</option><option value="file">音频文件</option></select></label>
+        <label><span>单条消息最多链接数</span><input type="number" name="maxLinks" min="1" max="3"></label>
+        <label><span>单文件上限 MiB（最多 200）</span><input type="number" name="maxFileMiB" min="1" max="200"></label>
+        <label><span>整条消息总预算秒</span><input type="number" name="timeoutSeconds" min="5" max="300"></label>
+        <label><span>全局并发数（同会话固定 1）</span><input type="number" name="concurrency" min="1" max="8"></label>
+        <label><span>等待任务上限</span><input type="number" name="queueLimit" min="0" max="100"></label>
+        <label><span>最长排队秒（最多 30）</span><input type="number" name="queueWaitSeconds" min="1" max="30"></label>
+        <label><span>同会话同链接去重秒</span><input type="number" name="dedupeSeconds" min="0" max="3600"></label>
+        <label><span>缓存保留秒</span><input type="number" name="cacheSeconds" min="60" max="86400"></label>
+      </div><div class="actions"><button class="primary" type="submit">保存设置</button></div></form>
+      <p class="muted" style="margin-top:12px">多个链接共享总预算。有效文件上限还受通道限制；长音频完整保留为文件，语音依赖缺失时自动降级。</p>
+    </section>
+    <section class="card">
+      <h2>本机引擎设置</h2>
+      <form id="engine-form"><div class="fields">
+        <label><span>引擎模式</span><select name="engineMode"><option value="managed">托管：独立 Python 环境</option><option value="external">外部：同机引擎</option></select></label>
+        <label><span>本机回环地址与端口</span><input type="text" name="engineUrl" required></label>
+        <label class="full"><span>Python 可执行路径（留空自动查找）</span><input type="text" name="pythonPath" autocomplete="off"></label>
+        <label class="full"><span>ffmpeg 路径（留空自动查找）</span><input type="text" name="ffmpegPath" autocomplete="off"></label>
+        <label class="full"><span>外部模式本地缓存根（必须明确配置）</span><input type="text" name="externalCacheRoot" autocomplete="off"></label>
+        <label><span>热评条数</span><input type="number" name="hotComments" min="0" max="20"></label>
+        <label class="toggle"><input type="checkbox" name="translation"><span>翻译：允许调用所配模型</span></label>
+      </div><div class="actions"><button class="primary" type="submit">保存引擎设置</button></div></form>
+      <div class="notice">首次准备会校验源码、创建独立环境并安装声明依赖；进度与错误如实显示。多机器人需使用不同端口。外部模式仅支持同机缓存文件。</div>
+      <h2 style="margin-top:20px">真实解析预览</h2>
+      <form id="preview-form"><textarea class="preview-input" id="preview-text" placeholder="粘贴一个或多个受支持分享链接" required></textarea><div class="actions"><button class="primary" type="submit">解析并预览</button><small>不会向真实聊天发消息</small></div></form>
+      <div id="preview-result"></div>
+    </section>
+    <section class="card wide">
+      <div class="row" style="justify-content:space-between"><h2>平台输出模式</h2><button id="save-platforms" class="primary">保存平台设置</button></div>
+      <p class="muted">31 个解析入口均已保留。这里显示配置与验证状态；实时可用性受登录态、地区与平台接口影响。修改后空闲重启生效。</p>
+      <div id="platforms" class="platforms"></div>
+    </section>
+    <section class="card wide">
+      <div class="row" style="justify-content:space-between"><h2>任务记录</h2><div class="row"><button id="prev-page">上一页</button><span id="pagination" class="muted"></span><button id="next-page">下一页</button></div></div>
+      <div class="scroll"><table><thead><tr><th>时间</th><th>平台及来源</th><th>状态</th><th>发送数量</th><th>待确认 / 失败 / 跳过</th><th>原因</th></tr></thead><tbody id="task-rows"></tbody></table></div>
+      <p class="muted" style="margin-top:12px">最多保留 200 条记录，不持久化解析正文。待确认表示投递结果尚未确认，不会整份重发。</p>
+    </section>
+    <section class="card">
+      <h2>高级引擎参数</h2>
+      <p class="muted">保留原引擎字段，支持文案显示、文本转图片、代理与平台参数。翻译开关使用 <code>translation.enable</code>，由上方翻译开关控制。凭据会转入单独的凭据文件。</p>
+      <form id="advanced-form"><textarea id="advanced" spellcheck="false" aria-label="高级引擎 JSON 配置"></textarea><div class="actions"><button class="primary" type="submit">保存高级配置</button></div></form>
+    </section>
+    <section class="card">
+      <h2>平台与翻译凭据</h2>
+      <p class="muted">已保存内容仅显示遮罩。留空保留原值，勾选「清除」后保存可删除对应值。配置保存后空闲重启生效。</p>
+      <form id="credentials-form"><div id="credentials-fields" class="fields"></div><div class="actions"><button class="primary" type="submit">保存凭据</button></div></form>
+      <details><summary>其他凭据 JSON</summary><p class="muted">只接受命名的 cookie、token、api_key 等凭据字段；空对象不改动已有值。</p><textarea id="extra-credentials" spellcheck="false" aria-label="其他凭据 JSON">{}</textarea></details>
+    </section>
+    <section class="card wide">
+      <h2>宿主接入边界</h2><div id="boundaries"></div>
+      <details><summary>供 reply-judge 使用的链接放行规则</summary><p class="muted">将此规则加入该插件已有 bypassRegex；本插件不会修改其他插件。</p><textarea id="bypass" readonly aria-label="reply-judge 放行正则"></textarea></details>
+      <details><summary>管理页授权说明</summary><p id="auth-boundary" class="muted"></p></details>
+    </section>
+  </div>
+</main>
+<script>
+'use strict';
+const apiBase = '/api/plugins/media-parser/r';
+const token = new URLSearchParams(location.search).get('pt') || '';
+const bot = new URLSearchParams(location.search).get('bot') || '';
+const $ = (id) => document.getElementById(id);
+let currentPage = 1;
+let totalPages = 1;
+let configLoaded = false;
+let refreshing = false;
+let operationTimer = null;
+const credentialKeys = [
+  ['engineToken','外部模式引擎认证 Token'],
+  ['bilibili_enhanced.cookie','哔哩哔哩 Cookie'],
+  ['wechat.yuanbao_cookie','微信元宝 Cookie'],
+  ['pixiv.cookie','Pixiv Cookie'],
+  ['translation.llm.custom_provider.api_key','翻译 API Key']
+];
+function element(tag, text, className) {
+  const node = document.createElement(tag);
+  if (text !== undefined) node.textContent = text;
+  if (className) node.className = className;
+  return node;
+}
+function feedback(text, error) {
+  const node = $('feedback');
+  node.textContent = text;
+  node.className = error ? 'error' : 'success';
+  node.style.display = 'block';
+}
+async function api(url, method, body) {
+  const params = new URLSearchParams();
+  if (token) params.set('pt', token);
+  if (bot) params.set('bot', bot);
+  const separator = url.includes('?') ? '&' : '?';
+  const response = await fetch(apiBase + url + (params.size ? separator + params.toString() : ''), {
+    method: method || 'GET',
+    headers: body === undefined ? {} : { 'Content-Type': 'application/json' },
+    ...(body === undefined ? {} : { body: JSON.stringify(body) })
+  });
+  const data = response.status === 204 ? {} : await response.json();
+  if (!response.ok) throw new Error(data.error || '请求失败（' + response.status + '）');
+  return data;
+}
+function formValues(form) {
+  const out = {};
+  for (const field of form.elements) {
+    if (!field.name) continue;
+    out[field.name] = field.type === 'checkbox' ? field.checked : field.type === 'number' ? Number(field.value) : field.value;
+  }
+  return out;
+}
+function fillForm(form, values) {
+  for (const field of form.elements) {
+    if (!field.name || !(field.name in values)) continue;
+    if (field.type === 'checkbox') field.checked = values[field.name] === true;
+    else field.value = values[field.name];
+  }
+}
+function fillCredentials(hints) {
+  const box = $('credentials-fields');
+  box.replaceChildren();
+  credentialKeys.forEach(([key,label]) => {
+    const row = element('div', undefined, 'full');
+    const title = element('label', label + (hints[key] && hints[key].set ? ' · 已保存' : ' · 未配置'));
+    const input = element('input'); input.type = 'password'; input.autocomplete = 'new-password'; input.dataset.key = key;
+    input.placeholder = hints[key] && hints[key].set ? '••••••••（留空保留）' : '未保存';
+    const clearLabel = element('label', undefined, 'toggle');
+    const clear = element('input'); clear.type = 'checkbox'; clear.dataset.clear = key;
+    clearLabel.append(clear, document.createTextNode('清除'));
+    row.append(title,input,clearLabel); box.append(row);
+  });
+}
+function setNested(target, keys, value) {
+  const parts = keys.split('.');
+  let obj = target;
+  for (const key of parts.slice(0,-1)) {
+    if (['__proto__','constructor','prototype'].includes(key)) throw new Error('不允许的键');
+    obj = obj[key] || (obj[key] = {});
+  }
+  obj[parts[parts.length-1]] = value;
+}
+async function loadConfig() {
+  const data = await api('/config');
+  fillForm($('settings-form'), data.config); fillForm($('engine-form'), data.config);
+  $('advanced').value = JSON.stringify(data.advanced,null,2);
+  fillCredentials(data.credentials || {});
+  $('restart-notice').hidden = !data.restartRequired;
+  const platforms = await api('/platforms');
+  $('platforms').replaceChildren();
+  for (const platform of platforms.platforms) {
+    const cell = element('div', undefined, 'platform');
+    const label = element('label', platform.name);
+    const select = element('select'); select.dataset.platform = platform.id;
+    for (const mode of platforms.modes) {
+      const option = element('option', mode === '仅文本' ? '仅文字' : mode === '仅富媒体' ? '仅媒体' : mode);
+      option.value = mode; select.append(option);
+    }
+    select.value = platform.mode;
+    cell.append(label,select,element('small',platform.verification)); $('platforms').append(cell);
+  }
+  configLoaded = true;
+}
+async function loadStatus() {
+  const data = await api('/status');
+  const state = data.engine || {};
+  $('engine-badge').textContent = data.ready ? '就绪' : state.state || state.phase || '未就绪';
+  $('running').textContent = data.queue.running;
+  $('waiting').textContent = data.queue.waiting;
+  $('platform-count').textContent = data.platformCount;
+  const bytes = Number(state.cacheBytes || (state.cache && state.cache.bytes) || 0);
+  $('cache').textContent = (bytes / 1048576).toFixed(1);
+  $('engine-detail').textContent = data.prepareError || state.message || state.detail || '引擎状态与依赖详情可展开查看。';
+  $('diagnostics').textContent = JSON.stringify(state,null,2);
+  $('restart-notice').hidden = !data.restartRequired;
+  $('operations').textContent = (data.operations || []).slice(-3).map((task) => task.action + '：' + task.state + (task.error ? ' · ' + task.error : '')).join(' / ');
+  document.querySelector('[data-op="restart"]').disabled = data.queue.running > 0 || data.queue.waiting > 0;
+  if (data.boundaries) {
+    $('boundaries').replaceChildren();
+    for (const warning of data.boundaries.warnings || []) $('boundaries').append(element('p',warning,'muted'));
+    $('boundaries').append(element('p',data.boundaries.groupSwitch,'notice'));
+    const judge = data.boundaries.replyJudge || {};
+    $('boundaries').append(element('p','reply-judge 检测：' + (judge.installed ? judge.enabled === false ? '已安装但停用' : '已发现' : '未发现配置，状态未知') + '；现有 bypassRegex：' + (judge.bypassConfigured ? '已配置，请核对覆盖范围' : '未检测到'),'muted'));
+    $('bypass').value = data.boundaries.bypassRegex || '';
+    $('auth-boundary').textContent = data.boundaries.panelAuthorization || '';
+  }
+}
+async function loadTasks() {
+  const data = await api('/tasks?page=' + currentPage + '&pageSize=20');
+  totalPages = data.pages;
+  $('pagination').textContent = currentPage + ' / ' + totalPages + ' · 共 ' + data.total + ' 条';
+  $('prev-page').disabled = currentPage <= 1;
+  $('next-page').disabled = currentPage >= totalPages;
+  $('task-rows').replaceChildren();
+  for (const task of data.rows) {
+    const tr = element('tr');
+    tr.append(element('td',new Date(task.createdAt).toLocaleString()));
+    const sources = element('td',undefined,'url');
+    sources.append(element('div',(task.platforms || []).join(' / ')));
+    for (const link of task.links || []) sources.append(element('div',link,'muted'));
+    tr.append(sources,element('td',task.state),element('td',Object.entries(task.sent || {}).map(([k,v]) => k + ' ' + v).join(' · ')));
+    tr.append(element('td',[task.pending || 0,task.failed || 0,task.skipped || 0].join(' / ')));
+    const reasons = [task.reason].concat(task.reasons || []).filter(Boolean).map((r) => typeof r === 'string' ? r : JSON.stringify(r));
+    tr.append(element('td',reasons.join('；')));
+    $('task-rows').append(tr);
+  }
+}
+async function refresh() {
+  if (refreshing) return;
+  refreshing = true;
+  try { await Promise.all([loadStatus(),loadTasks()]); } catch (error) { feedback(error.message,true); }
+  finally { refreshing = false; }
+}
+async function withButton(form, fn) {
+  const button = form.querySelector('button[type="submit"]');
+  if (button) button.disabled = true;
+  try { await fn(); } catch (error) { feedback(error.message,true); }
+  finally { if (button) button.disabled = false; }
+}
+for (const id of ['settings-form','engine-form']) {
+  $(id).addEventListener('submit', (event) => {
+    event.preventDefault();
+    withButton(event.currentTarget, async () => {
+      const data = await api('/config','PUT',{ config: formValues($(id)) });
+      $('restart-notice').hidden = !data.restartRequired;
+      feedback(data.restartRequired ? '设置已保存，空闲重启后使引擎配置生效。' : '设置已保存。');
+      if (id === 'engine-form') $('advanced').value = JSON.stringify((await api('/config')).advanced,null,2);
+    });
+  });
+}
+$('save-platforms').addEventListener('click',async () => {
+  try {
+    const parsers = {};
+    document.querySelectorAll('[data-platform]').forEach((select) => { parsers[select.dataset.platform] = select.value; });
+    await api('/platforms','PUT',{ parsers }); $('restart-notice').hidden = false;
+    feedback('平台设置已保存，空闲重启后生效。');
+  } catch (error) { feedback(error.message,true); }
+});
+$('advanced-form').addEventListener('submit',(event) => {
+  event.preventDefault(); withButton(event.currentTarget,async () => {
+    const data = await api('/advanced','PUT',{ advanced: JSON.parse($('advanced').value) });
+    $('advanced').value = JSON.stringify(data.advanced,null,2); fillCredentials(data.credentials || {});
+    $('restart-notice').hidden = false; feedback('高级配置已保存，凭据已单独存储。空闲重启后生效。');
+  });
+});
+$('credentials-form').addEventListener('submit',(event) => {
+  event.preventDefault(); withButton(event.currentTarget,async () => {
+    const credentials = JSON.parse($('extra-credentials').value || '{}');
+    document.querySelectorAll('[data-key]').forEach((input) => {
+      const clear = Array.from(document.querySelectorAll('[data-clear]')).find((node) => node.dataset.clear === input.dataset.key);
+      if (clear && clear.checked) setNested(credentials,input.dataset.key,'');
+      else if (input.value) setNested(credentials,input.dataset.key,input.value);
+    });
+    const data = await api('/credentials','PUT',{ credentials });
+    fillCredentials(data.credentials || {}); $('extra-credentials').value = '{}';
+    $('restart-notice').hidden = false; feedback('凭据已保存，空闲重启后生效。');
+  });
+});
+async function watchOperation(taskId) {
+  clearTimeout(operationTimer);
+  try {
+    const data = await api('/operations/' + encodeURIComponent(taskId));
+    feedback(data.task.action + '：' + data.task.state + (data.task.error ? ' · ' + data.task.error : ''),data.task.state === 'failed');
+    if (data.task.state === 'running') operationTimer = setTimeout(() => watchOperation(taskId),1500);
+    await refresh();
+  } catch (error) { feedback(error.message,true); }
+}
+document.querySelectorAll('[data-op]').forEach((button) => button.addEventListener('click',async () => {
+  button.disabled = true;
+  try {
+    const data = await api('/operations','POST',{ action: button.dataset.op });
+    feedback('维护任务已提交；进度会持续更新。'); watchOperation(data.taskId);
+  } catch (error) { feedback(error.message,true); }
+  finally { button.disabled = false; }
+}));
+async function watchPreview(taskId) {
+  try {
+    const data = await api('/tasks/' + encodeURIComponent(taskId));
+    if (['queued','running'].includes(data.task.state)) { setTimeout(() => watchPreview(taskId),1000); return; }
+    $('preview-result').replaceChildren();
+    if (!data.preview) throw new Error(data.task.reason || '未得到预览结果');
+    $('preview-result').append(element('p',data.preview.note,'success'));
+    for (const item of data.preview.messages || []) $('preview-result').append(element('div',item.type + '：' + (item.text || item.name || '媒体项目'),'item'));
+    for (const item of [].concat(data.preview.blocked || [],data.preview.skipped || [])) $('preview-result').append(element('div',typeof item === 'string' ? item : JSON.stringify(item),'notice'));
+    if (data.preview.truncated) $('preview-result').append(element('p','预览条目过多，页面仅展示前 100 项。','muted'));
+    await refresh();
+  } catch (error) { feedback(error.message,true); }
+}
+$('preview-form').addEventListener('submit',(event) => {
+  event.preventDefault(); withButton(event.currentTarget,async () => {
+    const data = await api('/preview','POST',{ text: $('preview-text').value });
+    $('preview-result').replaceChildren(element('p','真实解析进行中…','muted')); watchPreview(data.taskId);
+  });
+});
+$('refresh').addEventListener('click',refresh);
+$('prev-page').addEventListener('click',() => { if (currentPage > 1) { currentPage--; loadTasks().catch((e) => feedback(e.message,true)); } });
+$('next-page').addEventListener('click',() => { if (currentPage < totalPages) { currentPage++; loadTasks().catch((e) => feedback(e.message,true)); } });
+loadConfig().then(refresh).catch((error) => feedback(error.message,true));
+setInterval(refresh,5000);
+</script>
+</body>
+</html>

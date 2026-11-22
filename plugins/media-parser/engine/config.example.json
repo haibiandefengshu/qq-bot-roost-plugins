@@ -1,0 +1,156 @@
+{
+  "qq": {
+    "host": "127.0.0.1",
+    "port": 3199,
+    "token": "",
+    "cacheDir": "",
+    "cacheTtlSeconds": 1800,
+    "ffmpegPath": "",
+    "autoParse": true,
+    "privateChat": true,
+    "groups": [],
+    "requireAt": false,
+    "maxLinksPerMessage": 3,
+    "replyOnParse": true,
+    "send": {
+      "maxPerMinute": 20,
+      "delayMs": 600,
+      "maxFileSizeMb": 300
+    },
+    "archive": {
+      "command": "解析归档",
+      "maxTotalSizeMb": 512
+    }
+  },
+  "trigger": {
+    "auto_parse": true,
+    "keywords": [
+      "视频解析",
+      "解析视频"
+    ],
+    "reply_trigger": false
+  },
+  "parsers": {
+    "bilibili": "全部发送",
+    "douyin": "全部发送",
+    "kuaishou": "全部发送",
+    "acfun": "全部发送",
+    "hongguo": "全部发送",
+    "netease": "全部发送",
+    "ximalaya": "全部发送",
+    "weibo": "全部发送",
+    "xiaohongshu": "全部发送",
+    "xianyu": "全部发送",
+    "toutiao": "全部发送",
+    "xiaoheihe": "全部发送",
+    "xueqiu": "全部发送",
+    "wechat": "全部发送",
+    "zhihu": "全部发送",
+    "tieba": "全部发送",
+    "nga": "全部发送",
+    "hupu": "全部发送",
+    "douban": "全部发送",
+    "v2ex": "全部发送",
+    "juejin": "全部发送",
+    "csdn": "全部发送",
+    "cnblogs": "全部发送",
+    "gitee": "全部发送",
+    "tiktok": "全部发送",
+    "youtube": "全部发送",
+    "steam": "全部发送",
+    "twitter": "全部发送",
+    "pixiv": "全部发送",
+    "github": "全部发送",
+    "gitlab": "全部发送"
+  },
+  "message": {
+    "opening": {
+      "enable": false,
+      "content": "正在解析，稍等～",
+      "archive_content": "正在打包，请稍候…"
+    },
+    "packing": {
+      "mode": "不聚合",
+      "thresholds": {
+        "image_count": 3,
+        "video_count": 2,
+        "node_count": 5
+      }
+    },
+    "archive": {
+      "command": "解析归档",
+      "max_total_size_mb": 512
+    },
+    "media_display": {
+      "video_cover_only": false,
+      "audio_send_mode": "语音",
+      "interleave_images": false
+    },
+    "text_metadata": {
+      "show_title": true,
+      "show_author": true,
+      "show_timestamp": true,
+      "show_original_link": true,
+      "show_description": true,
+      "quote_user_message": true,
+      "render_to_image": false,
+      "render_style": "fresh",
+      "render_font_family": "noto_sans",
+      "render_font_size": 24,
+      "render_line_spacing": 1.55,
+      "render_paragraph_spacing": 1.0,
+      "render_paginate": false
+    },
+    "hot_comments": {
+      "count": 0
+    }
+  },
+  "download": {
+    "max_video_size_mb": 300,
+    "max_audio_size_mb": 30,
+    "large_video_threshold_mb": 100,
+    "max_concurrent": 5
+  },
+  "parse_rate_limit": {
+    "same_link": {
+      "max_count": 0,
+      "window_seconds": 3600
+    },
+    "same_user": {
+      "max_count": 0,
+      "window_seconds": 3600
+    }
+  },
+  "proxy": {
+    "address": ""
+  },
+  "bilibili_enhanced": {
+    "use_cookie": false,
+    "cookie": "",
+    "max_quality": "不限制"
+  },
+  "wechat": {
+    "yuanbao_cookie": ""
+  },
+  "pixiv": {
+    "cookie": ""
+  },
+  "translation": {
+    "enable": false,
+    "content_scope": "正文和标题",
+    "target_language": "简体中文",
+    "llm": {
+      "provider_source": "插件自定义提供商",
+      "custom_provider": {
+        "provider": "自定义 OpenAI 兼容",
+        "base_url": "",
+        "api_key": "",
+        "model": ""
+      }
+    }
+  },
+  "admin": {
+    "clean_cache_keyword": "清理媒体",
+    "debug_mode": false
+  }
+}
