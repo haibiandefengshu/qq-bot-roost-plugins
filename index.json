@@ -571,6 +571,218 @@
   ],
   "deps": [
     {
+      "name": "qrcode",
+      "version": "1.5.4",
+      "kind": "bundle",
+      "license": "MIT（树内子包为 MIT / ISC）",
+      "why": "生成二维码（扫码登录）。纯 JS、无安装脚本；缺失时宿主有内置兜底，装了版本上限更高",
+      "packages": [
+        {
+          "name": "ansi-regex",
+          "version": "5.0.1",
+          "path": "deps/qrcode/ansi-regex-5.0.1.tgz",
+          "sha256": "0e0eadcdaada805db5d85b53ad5cdca0760b996ee199ec9658e7b34aa6c8e0d9",
+          "size": 2768
+        },
+        {
+          "name": "ansi-styles",
+          "version": "4.3.0",
+          "path": "deps/qrcode/ansi-styles-4.3.0.tgz",
+          "sha256": "2c539a46d85ab6033183997434d2d9a5ca2ceefc12b4db9022f564784cd7987f",
+          "size": 5849
+        },
+        {
+          "name": "camelcase",
+          "version": "5.3.1",
+          "path": "deps/qrcode/camelcase-5.3.1.tgz",
+          "sha256": "c609324ab889515f2f7354ddcc319b6080c9b76f2ac1441c03da031c85458696",
+          "size": 3028
+        },
+        {
+          "name": "cliui",
+          "version": "6.0.0",
+          "path": "deps/qrcode/cliui-6.0.0.tgz",
+          "sha256": "538bfc9753338f8eb816c46e7e541b3bbada18446cf8b5149cfaaafff01acbd8",
+          "size": 5566
+        },
+        {
+          "name": "color-convert",
+          "version": "2.0.1",
+          "path": "deps/qrcode/color-convert-2.0.1.tgz",
+          "sha256": "920fa43538c019a085dbbf04cb6f72cc337624e5f5217519f0e7b2ef784e7ce1",
+          "size": 8996
+        },
+        {
+          "name": "color-name",
+          "version": "1.1.4",
+          "path": "deps/qrcode/color-name-1.1.4.tgz",
+          "sha256": "507b7c4461e8eb941355af9a59e9a7e02cd0e7c6176b48d1809766344f3f1708",
+          "size": 2868
+        },
+        {
+          "name": "decamelize",
+          "version": "1.2.0",
+          "path": "deps/qrcode/decamelize-1.2.0.tgz",
+          "sha256": "b4adeff510e38c3a02703bcba72ffbe3c65b591f13c78c6a459b5e801a3e2864",
+          "size": 1691
+        },
+        {
+          "name": "dijkstrajs",
+          "version": "1.0.3",
+          "path": "deps/qrcode/dijkstrajs-1.0.3.tgz",
+          "sha256": "07149886ab98299c227b8de61912770b24b8a17b250996a4b5727c9f8bff4c00",
+          "size": 3541
+        },
+        {
+          "name": "emoji-regex",
+          "version": "8.0.0",
+          "path": "deps/qrcode/emoji-regex-8.0.0.tgz",
+          "sha256": "b5ccd9fbfb08098eefbeb6b6b4b40db6db3acf9243e327e039925aa8661cb107",
+          "size": 6664
+        },
+        {
+          "name": "find-up",
+          "version": "4.1.0",
+          "path": "deps/qrcode/find-up-4.1.0.tgz",
+          "sha256": "33a9b0535306d2e05e0a27088b68344b52ac767d576ef60b7ab173aa0d5a26eb",
+          "size": 3745
+        },
+        {
+          "name": "get-caller-file",
+          "version": "2.0.5",
+          "path": "deps/qrcode/get-caller-file-2.0.5.tgz",
+          "sha256": "7b13e1c81949ff4c1baae4ac4e34990492d5e8a86dab7e3b90027b1f5126935f",
+          "size": 2383
+        },
+        {
+          "name": "is-fullwidth-code-point",
+          "version": "3.0.0",
+          "path": "deps/qrcode/is-fullwidth-code-point-3.0.0.tgz",
+          "sha256": "6f415dae5dc6070f1b42daee6165eab941a97101982305facc8bafdaf300bc4a",
+          "size": 2169
+        },
+        {
+          "name": "locate-path",
+          "version": "5.0.0",
+          "path": "deps/qrcode/locate-path-5.0.0.tgz",
+          "sha256": "ae3d1b9360a435840a81a8c7da29f59630dd793c3f39a08f15f73fd3894053b7",
+          "size": 2723
+        },
+        {
+          "name": "p-limit",
+          "version": "2.3.0",
+          "path": "deps/qrcode/p-limit-2.3.0.tgz",
+          "sha256": "384b452409cfeb5c6fa82dc68ebfa498b24717b74fb8d3fe6eb2bb89908db295",
+          "size": 3140
+        },
+        {
+          "name": "p-locate",
+          "version": "4.1.0",
+          "path": "deps/qrcode/p-locate-4.1.0.tgz",
+          "sha256": "d95a6ae462e3d967deb0c250bda1c3bbebfe86a58832d27b204c7b74a76fa5f0",
+          "size": 3060
+        },
+        {
+          "name": "p-try",
+          "version": "2.2.0",
+          "path": "deps/qrcode/p-try-2.2.0.tgz",
+          "sha256": "a390b2b89899df950afc0304eaba7cd1f5e3746b2e370758a9b50f177e713790",
+          "size": 2194
+        },
+        {
+          "name": "path-exists",
+          "version": "4.0.0",
+          "path": "deps/qrcode/path-exists-4.0.0.tgz",
+          "sha256": "dbb535c9302ce9b3f777ece3ff055cc8d88890a1e1deddc045340aef76fb775c",
+          "size": 2073
+        },
+        {
+          "name": "pngjs",
+          "version": "5.0.0",
+          "path": "deps/qrcode/pngjs-5.0.0.tgz",
+          "sha256": "4d960bbbe078022d7a36822e2874f884c7410ead111f3603d69d70fc7af36f20",
+          "size": 200153
+        },
+        {
+          "name": "qrcode",
+          "version": "1.5.4",
+          "path": "deps/qrcode/qrcode-1.5.4.tgz",
+          "sha256": "0c7274f0c299f39c2fddf54a2e0039b785977b0173c02d0b3f65fad68923e2b0",
+          "size": 50428
+        },
+        {
+          "name": "require-directory",
+          "version": "2.1.1",
+          "path": "deps/qrcode/require-directory-2.1.1.tgz",
+          "sha256": "703bee0844360383fe4a8792d4a5a562647426a053e7597a1d272ac554f386c8",
+          "size": 4372
+        },
+        {
+          "name": "require-main-filename",
+          "version": "2.0.0",
+          "path": "deps/qrcode/require-main-filename-2.0.0.tgz",
+          "sha256": "c5bb566318fb6091c7c2ac7c0aba6eeb7b332ffcfafad2268a2dc12a4d428e00",
+          "size": 1965
+        },
+        {
+          "name": "set-blocking",
+          "version": "2.0.0",
+          "path": "deps/qrcode/set-blocking-2.0.0.tgz",
+          "sha256": "d934aee7db9e09da09e87724743315ffe888130aa6e04fbbdecac985f6ae693d",
+          "size": 2212
+        },
+        {
+          "name": "string-width",
+          "version": "4.2.3",
+          "path": "deps/qrcode/string-width-4.2.3.tgz",
+          "sha256": "adbb4fb1b26e8069af99adff0079369c93f17cf887b91086691d671ddbd52934",
+          "size": 2383
+        },
+        {
+          "name": "strip-ansi",
+          "version": "6.0.1",
+          "path": "deps/qrcode/strip-ansi-6.0.1.tgz",
+          "sha256": "9bdb75d0bff49f156dd8c3bcb0e06b3fa96c3d88ddd4c342a4345866a40c08ca",
+          "size": 2041
+        },
+        {
+          "name": "which-module",
+          "version": "2.0.1",
+          "path": "deps/qrcode/which-module-2.0.1.tgz",
+          "sha256": "ff8eef22f989286c4a33d6c53acf11027a4c2634eb042c63d7bf3700b3424973",
+          "size": 1971
+        },
+        {
+          "name": "wrap-ansi",
+          "version": "6.2.0",
+          "path": "deps/qrcode/wrap-ansi-6.2.0.tgz",
+          "sha256": "d46fc412f04d873700a557bc9686d42c0d6c7979e1825cefebf4279ca9d678f8",
+          "size": 4004
+        },
+        {
+          "name": "y18n",
+          "version": "4.0.3",
+          "path": "deps/qrcode/y18n-4.0.3.tgz",
+          "sha256": "bc4970449801429ba77228a26f03e05ba7e9a5e98111edb44d6a0fc7b6660ecf",
+          "size": 4296
+        },
+        {
+          "name": "yargs",
+          "version": "15.4.1",
+          "path": "deps/qrcode/yargs-15.4.1.tgz",
+          "sha256": "41abfec6a74cfb4fa330af2a33b867dfa06a9b2b439bb01244c4f47c585de535",
+          "size": 56286
+        },
+        {
+          "name": "yargs-parser",
+          "version": "18.1.3",
+          "path": "deps/qrcode/yargs-parser-18.1.3.tgz",
+          "sha256": "0c9135ee2330fd9cdc19fed11b8d9a7b292f5dd8ddf40c13b051340693ebbe58",
+          "size": 19027
+        }
+      ]
+    },
+    {
       "name": "silk-wasm",
       "version": "3.7.1",
       "path": "deps/silk-wasm-3.7.1.tgz",
