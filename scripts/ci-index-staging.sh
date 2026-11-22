@@ -1,24 +1,23 @@
 #!/usr/bin/env bash
-# CI 专用：索引出现「预期漂移」时，准备一份临时重建的索引供检查使用。
+# CI 索引准备
+# ===========
 #
-# 为什么需要：
-#   投稿 PR 按约定不碰 index.json（作者只交 plugins/<id>/），
-#   所以「索引与插件目录一致」和依赖索引的契约测试必然红。
-#   合并后、sync-artifacts.yml 重建索引之前，main 上也是同样的暂时漂移。
-#   这个脚本只在 CI 的临时副本里重算索引，让检查能真实验证插件内容，
-#   而绝不改写仓库里的正式索引。
+# 投稿约定（2026-11-22 起）：作者交 `plugins/<id>/` + 由 build-index.mjs
+# 生成的根 `index.json`。index.json 像 lockfile——由脚本产出，但随 PR 提交，
+# CI 校验它没被手改歪。
 #
-# 2026-11-19 起插件索引不再签名：临时副本里没有 .sig 需要挪开，
-# build-index.mjs 也不再因「已签名但没私钥」拒绝写。
+# 因此 PR 事件**不再用临时副本兜绿**：
+#   - fork PR 改了 plugins/ 就必须同时改 index.json；
+#   - index.json 必须和插件目录逐字段对得上（build-index.mjs --check）；
+#   - 维护者字段是否被伪造，由 check-index-submission.mjs 另查。
 #
-# 红线：fork 投稿 PR 里出现 index.json 改动 → 直接失败。
-# 本仓维护者 PR（改索引脚本、重建索引本身）不受此限——否则取消签名这类
-# 索引改造 PR 会把自己拦住。投稿越界的完整拦截在 pr-guard.yml。
-# 用 GITHUB_EVENT_PATH 读事件 JSON 判断，不依赖调用方传 env。
+# push 到 main 仍保留临时重建：给「旧规 PR 合入 → 维护者补索引」的窗口
+# 留一个 warning，不让主分支短暂漂移变红。workflow_dispatch 严格失败。
 #
 # 输入环境变量：
 #   CI_BASE_REF      基准 ref（PR 用 origin/<base>，push 用 before）
 #   GITHUB_EVENT_NAME pull_request / push / workflow_dispatch
+#   GITHUB_EVENT_PATH 事件 JSON（用来判断是否 fork PR）
 #   GITHUB_ENV        Actions 环境文件（写回 CI_INDEX_DIR / CI_INDEX_STAGED）
 #   RUNNER_TEMP       临时目录父级
 # 输出环境变量：
@@ -33,42 +32,53 @@ if [ -z "$base" ]; then
   exit 1
 fi
 
-# 1) 索引：fork 投稿一律不许碰（索引由合并后的 bot 重建）
-if [ "${GITHUB_EVENT_NAME:-}" = "pull_request" ]; then
-  # 本仓 PR 允许改 index.json（维护者重建索引、改构建脚本都属合法改造）
-  is_fork=false
-  if [ -n "${GITHUB_EVENT_PATH:-}" ] && [ -f "$GITHUB_EVENT_PATH" ]; then
-    is_fork=$(node -e '
-      try {
-        const e = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8"));
-        const head = e.pull_request?.head?.repo?.full_name || "";
-        const base = e.repository?.full_name || "";
-        process.stdout.write(head && head !== base ? "true" : "false");
-      } catch { process.stdout.write("false"); }
-    ' "$GITHUB_EVENT_PATH")
+is_fork=false
+if [ "${GITHUB_EVENT_NAME:-}" = "pull_request" ] \
+  && [ -n "${GITHUB_EVENT_PATH:-}" ] && [ -f "$GITHUB_EVENT_PATH" ]; then
+  is_fork=$(node -e '
+    try {
+      const e = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8"));
+      const head = e.pull_request?.head?.repo?.full_name || "";
+      const base = e.repository?.full_name || "";
+      process.stdout.write(head && head !== base ? "true" : "false");
+    } catch { process.stdout.write("false"); }
+  ' "$GITHUB_EVENT_PATH")
+fi
+
+# 1) fork 投稿：plugins/ 与 index.json 必须成对改动
+if [ "$is_fork" = "true" ]; then
+  plugin_touched=$(git diff --name-only "$base"...HEAD -- plugins/ || true)
+  index_touched=$(git diff --name-only "$base"...HEAD -- index.json || true)
+  if [ -n "$plugin_touched" ] && [ -z "$index_touched" ]; then
+    echo "::error::投稿改了 plugins/ 但没提交 index.json。"
+    echo "::error::请先跑 node scripts/build-index.mjs，把生成结果一起提交。"
+    exit 1
   fi
-  if [ "$is_fork" = "true" ]; then
-    touched=$(git diff --name-only "$base"...HEAD -- index.json || true)
-    if [ -n "$touched" ]; then
-      echo "::error::fork 投稿 PR 不得改动 index.json（$touched）。索引由合并后的 sync-artifacts.yml 自动重建。"
-      exit 1
-    fi
+  if [ -z "$plugin_touched" ] && [ -n "$index_touched" ]; then
+    echo "::error::投稿只改了 index.json，但没有对应的 plugins/ 改动。"
+    echo "::error::索引是插件目录的投影，请提交插件内容或用生成器重建后核对差异。"
+    exit 1
   fi
 fi
 
-# 2) 正式索引本来就一致：直接用原目录，行为与以前完全一样
+# 2) 正式索引一致：所有事件都直接用原目录
 if node scripts/build-index.mjs --check >/dev/null 2>&1; then
   echo "CI_INDEX_DIR=$PWD" >> "$GITHUB_ENV"
   echo "CI_INDEX_STAGED=0" >> "$GITHUB_ENV"
-  echo "索引已一致，使用仓库正式索引"
+  echo "✓ 索引已一致，使用仓库正式索引"
   exit 0
 fi
 
-# 3) 真漂移了：只在 PR / push main 上用临时副本复核；手动触发仍按严格模式失败
+# 3) 漂移处理：PR 严格失败；push 给临时重建 warning；手动触发严格失败
 case "${GITHUB_EVENT_NAME:-}" in
-  pull_request|push) ;;
+  pull_request)
+    echo "::error::index.json 与 plugins/ 不一致，请跑 node scripts/build-index.mjs 并提交生成结果。"
+    node scripts/build-index.mjs --check || true
+    exit 1
+    ;;
+  push) ;;
   *)
-    echo "::error::索引与插件目录不一致。仅在 PR / push 事件启用临时索引复核；请检查是否漏了重建索引。"
+    echo "::error::索引与插件目录不一致。workflow_dispatch 不启用临时索引，请先重建索引。"
     exit 1
     ;;
 esac
@@ -84,4 +94,4 @@ node scripts/build-index.mjs --check
 
 echo "CI_INDEX_DIR=$stage" >> "$GITHUB_ENV"
 echo "CI_INDEX_STAGED=1" >> "$GITHUB_ENV"
-echo "::warning::索引与插件目录漂移（投稿 PR 不改索引，属预期）。已用临时重建索引完成一致性复核；正式索引仍需在合并后重建。"
+echo "::warning::main 上索引短暂漂移（旧规 PR 合入或人工漏重建）。已用临时重建索引复核；请尽快提 PR 提交 node scripts/build-index.mjs 的结果。"

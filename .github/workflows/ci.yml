@@ -7,9 +7,9 @@ name: CI
 #   1. 语法别写错
 #   2. 改了内容要升版本号（市场只比版本号，不升版等于没发）
 #   3. 索引和插件目录对得上（sha256 一致）
-#   4. 投稿 PR 按约定不碰 index.json，索引必然暂时漂移。此时在 CI 的**临时副本**里
-#      重建索引来跑一致性/契约检查；正式 index.json 永远只验、不改写。
-#      重建由合并后的 sync-artifacts.yml 做（2026-11-20 起 bot 自动回推）。
+#   4. 投稿 PR 要同时交 plugins/<id>/ 与由 build-index.mjs 生成的 index.json。
+#      CI 校验真实索引，不再用临时副本兜绿；fork 投稿的维护者字段另由
+#      check-index-submission.mjs 比对基准，防止伪造 repo / 署名 / 分级。
 
 on:
   push:
@@ -47,9 +47,13 @@ jobs:
             echo "CI_BASE_REF=$before" >> "$GITHUB_ENV"
           fi
 
-      - name: 准备索引（漂移时用临时副本）
+      - name: 准备索引（PR 严格校验，push 才允许临时副本）
         shell: bash
         run: bash scripts/ci-index-staging.sh
+
+      - name: 投稿索引字段校验（fork PR）
+        shell: bash
+        run: node scripts/check-index-submission.mjs
 
       - name: 语法检查
         shell: bash
@@ -85,8 +89,8 @@ jobs:
         shell: bash
         # 索引里的 sha256 必须和插件目录的真实内容对得上，
         # 否则用户装的时候会校验失败（那是我们自己的错，不该让用户撞上）。
-        # 漂移时 ci-index-staging.sh 已准备好临时重建索引，这里验的是它；
-        # 正式索引是否漂移由上面的准备步骤发 warning，不再让 PR 假红。
+        # PR 用的是投稿提交的真实 index.json；只有 push main 的短暂窗口
+        # 才会落到 ci-index-staging.sh 准备的临时副本上。
         run: |
           cd "${CI_INDEX_DIR:-$GITHUB_WORKSPACE}"
           node scripts/build-index.mjs --check
@@ -102,7 +106,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          # ci-index-staging.sh 要用 git diff 判断 PR 有没有碰 index.json
+          # ci-index-staging.sh 要用 git diff 核对 plugins/ 与 index.json
           fetch-depth: 0
 
       - name: 装 Node

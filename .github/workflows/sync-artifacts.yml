@@ -1,28 +1,27 @@
 name: Sync artifacts from merge
 
-# 合并后校验索引和 README 的贡献者表是否需要更新；**不再自动推 main**。
-# 2026-11-22 起改为人工回写：分支保护要求 PR + 4 项必需检查，bot 用
-# GITHUB_TOKEN 直推 main 会被 GH006 拒，所以本工作流只生成、校验、告警。
+# 合并后只校验索引是否自洽；**不生成贡献者表、不注入署名、不推 main**。
+# 2026-11-22 起投稿 PR 自带 build-index.mjs 生成的 index.json，合并后
+# 正常情况下没有漂移。若旧规 PR 或人工漏重建导致漂移，这里发 warning，
+# 由维护者开 PR 提交生成结果（分支保护不允许 bot 直推 main）。
+#
 # 和 pr-guard.yml 的分工：
 #   pr-guard.yml    —— 投稿进来时拦风险（只读 PR 元数据，不执行 PR 代码）
-#   本文件          —— 投稿合并后校验产物（只在 main 上跑，不碰 PR 代码）
+#   ci.yml          —— 投稿时校验真实索引与维护者字段
+#   本文件          —— 合并后复核产物（只在 main 上跑，不碰 PR 代码）
 #
 # 为什么仍用 push 事件而不是 pull_request closed：
 #   1. 本仓用 merge-pr.mjs 重建提交（改 SHA 留住 author），PR 只能 closed 而非
 #      merged，pull_request 的 merged 事件不触发；push 是唯一可靠的信号。
-#   2. push 事件的 head_commit 是合并提交，用 commits/{sha}/pulls 能反查到
-#      关联 PR（重建提交和原 head 都能查到），拿到权威的投稿人登录名和 PR 号。
+#   2. push 事件的 head_commit 是合并提交，能直接对照合并后的 main。
 #
 # 安全前提（改这个文件的人必须守住）：
 #   1. 只 checkout main（可信代码），绝不 checkout PR 分支或执行投稿代码；
-#      build-index.mjs 只读插件目录的元信息、算哈希，不 import 插件逻辑。
-#   2. 权限只给 contents: read + pull-requests: read；不挂 environment、不引入
-#      自定义 secret（内置 GITHUB_TOKEN 只用来读 PR 元数据）。
-#   3. 【禁止给 actions/checkout 指定 token:】默认 GITHUB_TOKEN 足够。若将来
-#      恢复自动推送，注意 PAT / GitHub App token 会让 push 触发新 run 并递归，
-#      必须重新设计防环守卫，不要在这里直接加 token。
-#   4. 本工作流只在 runner 工作区生成产物、不写远端 main；concurrency 排队
-#      只为了避免并发校验互相干扰，不再有 push 重试。
+#      build-index.mjs 只读元信息、算哈希，不 import 插件逻辑。
+#   2. 权限只给 contents: read + pull-requests: read；不挂 environment、
+#      不引入任何 secret。
+#   3. 【禁止给 actions/checkout 指定 token:】默认 GITHUB_TOKEN 足够；PAT /
+#      GitHub App token 会让 push 触发新 run 并递归，必须重新设计防环守卫。
 
 on:
   push:
@@ -32,8 +31,6 @@ permissions:
   contents: read
   pull-requests: read
 
-# 不 cancel：让每次校验都完整跑完。排队不再涉及 push 重试，只是避免
-# 多个合并挤在一起时校验输出交错。
 concurrency:
   group: sync-artifacts
   cancel-in-progress: false
@@ -43,7 +40,6 @@ jobs:
     if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     steps:
-      # 不指定 token: —— 见文件头安全前提第 3 条，PAT 会造成无限递归
       - uses: actions/checkout@v4
         with:
           ref: main
@@ -53,33 +49,15 @@ jobs:
         with:
           node-version: '22.x'
 
-      - name: 生成并校验（不推送）
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SYNC_BEFORE: ${{ github.event.before }}
-          SYNC_AFTER: ${{ github.event.after }}
+      - name: 校验索引
         run: |
-          generate() {
-            node scripts/build-index.mjs
-            env GITHUB_TOKEN="$GH_TOKEN" GITHUB_REPOSITORY="${{ github.repository }}" \
-              SYNC_BEFORE="$SYNC_BEFORE" SYNC_AFTER="$SYNC_AFTER" \
-              node scripts/enrich-index.mjs
-            # enrich 只改展示字段，再跑一次保证索引自洽、字段顺序稳定
-            node scripts/build-index.mjs
-            node scripts/generate-readme.mjs
-            # 生成物不自洽就立刻失败，别把坏产物当成「需要人工回写」
-            node scripts/build-index.mjs --check
-            node scripts/generate-readme.mjs --check
-          }
-
-          generate
-
-          if git diff --quiet -- index.json README.md; then
-            echo '✓ 索引与 README 已是最新'
+          if node scripts/build-index.mjs --check; then
+            echo '✓ 索引与插件目录一致'
             exit 0
           fi
 
-          echo '::warning::索引或 README 有漂移。本工作流已取消自动推送，请人工重建并提交。'
-          git diff --stat -- index.json README.md || true
-          echo '人工步骤：从最新 main 开干净检出 → build-index.mjs → enrich-index.mjs → build-index.mjs → generate-readme.mjs → 两项 --check → 把 index.json / README.md 提 PR 合并。'
+          echo '::warning::main 上索引有漂移。本工作流不再自动推送，请人工重建并提交。'
+          node scripts/build-index.mjs
+          git diff --stat -- index.json || true
+          echo '人工步骤：从最新 main 开干净检出 → node scripts/build-index.mjs → 把 index.json 提 PR 合并。'
           exit 0

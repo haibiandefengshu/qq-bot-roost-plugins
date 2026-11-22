@@ -11,22 +11,25 @@
 
 1. Fork 本仓库
 2. 把你的插件放进 `plugins/<插件id>/`（要求见下面「插件目录要求」）
-3. 本地自检：
+3. 本地自检并生成索引：
 
    ```bash
    node --check plugins/<id>/index.js                    # 语法
    node scripts/check-versions.mjs --base origin/main    # 改了内容必须升 version
    git grep -Il $'\r' -- 'plugins/**'                    # 不能有 CRLF
+   node scripts/build-index.mjs                          # 生成根 index.json
+   node scripts/build-index.mjs --check                  # 确认索引一致
    ```
 
-4. **只提交 `plugins/<插件id>/` 这一个目录**，提 PR
+4. 提交 **`plugins/<插件id>/` + 根 `index.json`**，提 PR
 
-> ⚠️ **不要动 `index.json`**：它是合并后由 bot 自动重建的产物。
+> ⚠️ `index.json` 要随 PR 提交，但**不要手改字段**：它和 `package-lock.json`
+> 一样由脚本生成。CI 会复算并比对，手改 `verified` / `category` / `repo` /
+> 署名等维护者字段会被拦下。
 
-投稿 PR 里索引暂时落后于插件目录是正常的——投稿按约定只交插件目录。
-CI 的「索引与插件目录一致」会用一份临时重建的索引复核，不会因此假红。
-合并后 `sync-artifacts.yml` 自动重建索引和贡献者表并提交回 `main`，
-用户刷新面板的插件市场就能看到并安装，不用等维护者手工操作。
+`index.json` 像 lockfile：内容由 `build-index.mjs` 从插件目录算出来，随投稿
+一起进仓库，用户刷新面板的插件市场就能看到并安装，不用等合并后再 bot 回写。
+投稿 PR 只被允许改 `plugins/**` 与根 `index.json`；其余文件由维护者维护。
 
 ---
 
@@ -40,11 +43,11 @@ index.json 的 sha256  ──►  用户下载插件目录  ──►  本地重
 对不上 = 内容被改过（或换行符被转换过）→ 拒绝安装
 ```
 
-`index.json` 由 `build-index.mjs` 从 `plugins/*/` 重算生成，合并后由
-`sync-artifacts.yml` 自动重建并提交回 `main`；投稿 PR 不许碰。安装时的 sha256 校验保证
+`index.json` 由 `build-index.mjs` 从 `plugins/*/` 重算生成，随投稿 PR 提交；
+合并后 `sync-artifacts.yml` 只校验、不回写。安装时的 sha256 校验保证
 「装到的是索引记载的那份」，索引本身的权威来自仓库提交历史，不再来自签名。
-投稿风险由 `pr-guard.yml` 拦截 + 维护者人工审；`main` 保留禁强推 / 禁删除，
-同名 PR 的署名由 bot 从 GitHub 的 PR 元数据注入（见下面「发版流程」）。
+投稿风险由 `pr-guard.yml` 拦路径/凭证、由 CI 复算索引与维护者字段，
+最后仍由维护者人工审；`main` 保留禁强推 / 禁删除。
 
 > 2026-11-11 起插件索引不再签名（原 `index.json.sig` / `trust-public.pem` /
 > 手动签名 workflow 均已移除）。原因是个人仓无法给 GitHub Actions 配 bypass，
@@ -54,36 +57,34 @@ index.json 的 sha256  ──►  用户下载插件目录  ──►  本地重
 
 ---
 
-## 索引与 README 是生成物（合并后自动）
+## 索引是投稿的一部分（生成器产出，CI 校验）
 
-维护者不用手工重建索引，也不用补贡献者表。PR 合并到 `main` 后
-`sync-artifacts.yml` 自动做四件事，然后 bot 提交回 `main`：
+`index.json` 由 `build-index.mjs` 生成，随 PR 提交。CI 会做三层校验：
 
-1. `build-index.mjs` 重算结构字段（`id` / `version` / `path` / `sha256` / `frameworkVersion`）
-2. `enrich-index.mjs` 从 GitHub API 反查这次合并的 PR，给新条目补 `author` / `credits` / `addedAt`
-3. 再跑一次 `build-index.mjs`，确保索引自洽
-4. `generate-readme.mjs` 从索引重写 README 的贡献者表
+1. `build-index.mjs --check`：结构字段（`id` / `version` / `path` / `sha256` /
+   `runtime` / `kind` / `scopes` / `overrides` / `form` / `frameworkVersion`）、
+   `verified`、`category` 必须与磁盘和分级表一致；
+2. `check-index-submission.mjs`：顶层 `schema` / `repo` / `branch` 不能改，
+   `contributors` / `credits` / `addedAt` 等维护者字段不能伪造；
+3. `pr-guard.yml`：投稿路径白名单只放 `plugins/**` 与根 `index.json`。
 
-想手动看生成结果（不提交）：
+本地生成 / 校验：
 
 ```bash
 node scripts/build-index.mjs
-node scripts/generate-readme.mjs
-
-# 只校验，CI 跑的就是这两个
 node scripts/build-index.mjs --check
-node scripts/generate-readme.mjs --check
+node scripts/check-index-submission.mjs   # 非 fork PR 会跳过
 ```
 
-`enrich-index.mjs` 需要 `GITHUB_TOKEN` 才能反查 PR；本地跑会跳过署名注入，
-所以本地生成的索引缺 `author` / `credits` 是正常的，别手填——合并后 bot 会用
-权威的 PR 数据补上。`author` 取自 PR 发起人（维护者自己的 PR 不占社区署名），
-`credits` 记 PR 号，`addedAt` 是首次收录日。
-
 `build-index.mjs` 的合并规则：结构字段以磁盘为准，展示字段
-（`author` / `commands` / `addedAt` / `tags` / 描述 / `credits`）保留已有内容——
-所以 bot 反复跑同一批操作结果一致，不会把署名冲掉。新插件自动补一条，
+（`name` / `description` / `tags` / `commands` / `author`）保留已有内容——
+所以反复跑结果一致，不会把别人写过的文案冲掉。新插件自动补一条，
 删掉的插件自动移除。
+
+`author` 只是市场搜索用的展示提示（来自新条目的 `plugin.json.author`），
+**不是署名依据**。贡献归属看 GitHub Contributors 与各 PR 记录；README 不再
+维护贡献者表。存量条目里的 `author` / `credits` / `addedAt` 保持原值，
+投稿人不能改。
 
 `version` 要写成字面量（`version: '1.2.3'`）。写成常量的话，
 `check-versions.mjs` 和本脚本都读不到——CI 会直接判「读不到 version」。
@@ -107,7 +108,7 @@ git status --short
 
 ### 1. 收 PR / 放插件
 
-贡献者的 PR 只含 `plugins/<id>/**`。**不要直接点 GitHub 的合并按钮**，拉到本地：
+贡献者的 PR 含 `plugins/<id>/**` + 根 `index.json`。**不要直接点 GitHub 的合并按钮**，拉到本地：
 
 ```bash
 node scripts/merge-pr.mjs 2             # 拉分支 + 校正提交身份 + merge
@@ -119,15 +120,17 @@ node scripts/merge-pr.mjs 2 --dry-run   # 只演一遍，不动仓库
 按 commit 的 **author 邮箱**归户，贡献者在自己机器上带着别人的 `user.email` 提交时，
 这次贡献会记到邮箱主人头上，作者本人在仓库里一次提交都没有。
 
-PR 一旦动了 `index.json`，脚本直接中止（见上面「索引与内容完整性」）。
+PR 现在**必须**带 `index.json`，脚本不再因它中止；字段由 CI 复算校验。
 
 没有 PR、只是拿到一个目录时才手工放：
 
 ```bash
 git checkout FETCH_HEAD -- plugins/<id>
+# 然后生成索引
+node scripts/build-index.mjs
 ```
 
-只取插件目录，**不取** `index.json`。
+取插件目录后要补一份生成器产出的 `index.json`。
 
 然后过一遍：
 
@@ -138,19 +141,19 @@ grep -rn "eval(\|new Function\|child_process" plugins/<id>/*.js   # 跑外部命
 ```
 
 提交前本地先跑 `node scripts/build-index.mjs --check` 确认索引一致（CI 跑的就是这条）；
-合并完成后 `sync-artifacts.yml` 会自动重建索引与贡献者表并提交回 `main`，
-不要在 PR 里手改或提交生成物（见上面「索引与 README 是生成物」）。
+索引作为生成物随 PR 提交，合并后 `sync-artifacts.yml` 只校验、不回写
+（见上面「索引是投稿的一部分」）。
 
 ### 2. 开分支、提交
 
 ```bash
 git switch -c feat/<插件id>-<版本>    # 或 fix/<词>
-git add plugins/<id>
+git add plugins/<id> index.json
 git commit -m "feat(plugins): 收录 <id> <version>"
 ```
 
-只提交插件目录，**不提交 `index.json` / README**——它们是合并后 bot 生成的产物，
-在 PR 里手改会撞掉别人的改动。
+提交插件目录与生成器产出的 `index.json`，**不提交 README**——贡献者表已删除，
+README 是纯手写文档。
 
 ### 3. 推分支、开 PR
 
@@ -160,9 +163,7 @@ gh pr create --fill                   # 或到 GitHub 网页开
 ```
 
 走 PR 而不是直推 `main`：**维护者自己的插件改动也一样，要开 PR 再合并**。
-分支保护为了放开 bot 回推已去掉 required PR/checks（见上面「索引与内容完整性」），
-但直推会绕过 `pr-guard.yml` 的风险拦截和 CI 全部检查。`enrich-index.mjs` 会在
-直推改了 `plugins/` 时在 Actions 里发 warning 留痕。本仓 PR 没有强制人工审核，
+直推会绕过 `pr-guard.yml` 的路径拦截和 CI 四项必需检查。本仓 PR 没有强制人工审核，
 **CI 结论 + 维护者看 diff 就是代码门禁**，别自己拆。
 
 ### 4. Gitee 不用管
@@ -173,21 +174,22 @@ Gitee 由**原生 Pull 镜像**自动同步 GitHub 的提交（2026-11-17 起）
 
 ### 5. 等 CI
 
-CI 的三个 job 都要绿：`check`（语法 / 版本号 / 索引一致）、`test`（插件测试）、
-`eol`（换行符）。索引一致那项在投稿 PR 里用临时重建的索引复核，漂移会报 warning 但不假红。
-fork 投稿还会另跑 `pr-guard.yml` 的路径 / 凭证 / 符号链接拦截。
+CI 的三个 job 都要绿：`check`（语法 / 版本号 / 索引一致 / 投稿字段校验）、
+`test`（插件测试）、`eol`（换行符）。索引不一致在 PR 里直接红并提示重跑
+`build-index.mjs`；不再用临时副本兜绿。fork 投稿还会另跑 `pr-guard.yml` 的
+路径 / 凭证 / 符号链接拦截。
 
 `test` job 会把框架 checkout 到 `.framework/`，ref 由 `.github/workflows/ci.yml`
 的 `FRAMEWORK_REF`（或仓库 Variables）决定。**发框架新版时要同步改这个 ref**，
 否则插件测试跑在旧框架上，可能假绿也可能假红。
 
-### 6. 合并后核对 bot 的生成物
+### 6. 合并后核对索引
 
-合并后 `sync-artifacts.yml` 会自动重建索引与贡献者表并提交回 `main`。
-确认它跑完（GitHub Actions 里「Sync artifacts from merge」是绿的），再用 API 读
-`contents/index.json` 核对版本和 `author` 是否已注入——**别信 raw**，有 CDN 缓存。
-bot 提交里 `author` 取自 PR 发起人、`credits` 有 PR 号；缺了说明反查失败，
-手动触发一次该 workflow 或检查 `enrich-index.mjs` 的日志。Gitee 由镜像自动同步，不用核。
+投稿已随 PR 带上 `index.json`，合并后 `sync-artifacts.yml` 只做一致性校验。
+确认 GitHub Actions 里「Sync artifacts from merge」是绿的即可；若出现漂移 warning，
+说明有人漏了重建索引，从最新 `main` 跑一次 `node scripts/build-index.mjs` 并开 PR 提交。
+贡献归属不用查索引：GitHub Contributors 按 commit author 归户，PR 记录保留完整讨论。
+Gitee 由镜像自动同步，不用核。
 
 ---
 
@@ -195,9 +197,9 @@ bot 提交里 `author` 取自 PR 发起人、`credits` 有 PR 号；缺了说明
 
 | 现象 | 原因 | 处理 |
 |---|---|---|
-| CI「索引和插件目录对不上」警告 | 投稿 PR 不改索引，临时复核已通过 | 正常，合并后 bot 会重建 |
-| 合并后索引没更新 | `sync-artifacts.yml` 没跑或跑失败 | 看 Actions 日志；手动 Re-run 该 workflow |
-| 合并后新插件没署名 | `enrich-index.mjs` 反查 PR 失败 | 确认 PR 关联到了 push 的 commit；手动触发 workflow |
+| CI「索引和插件目录对不上」 | 投稿没提交生成器产出的 `index.json`，或手改了字段 | 跑 `node scripts/build-index.mjs` 并提交结果 |
+| CI「投稿索引校验失败」 | 改了 `repo` / 署名 / 分级等维护者字段 | 用生成器重建，不要手填这些字段 |
+| 合并后 sync 报索引漂移 warning | 旧规 PR 合入或人工漏重建 | 从最新 main 重建索引并开 PR 提交 |
 | CI「以下文件含 CRLF」 | Windows 检出被转成 CRLF，sha256 就对不上 | `.gitattributes` 已有 `* text=auto eol=lf`；用 `git add --renormalize .` 重新规范化 |
 | 用户装不上，报 sha256 不符 | 索引哈希和实际目录不一致 | 重建索引，确认提交的是 LF |
 | CI「读不到 version」 | `version` 写成了常量 | 改成字面量字符串 |
@@ -280,15 +282,9 @@ plugins/<插件id>/
 
 这里的插件来自社区投稿，谢谢这些作者。收录时保留原来的代码，只重建索引——代码长什么样，就是作者写成什么样。
 
-下面的表格由 `scripts/generate-readme.mjs` 从 `index.json` 生成，合并后 bot 自动更新，请勿手改（手改会被下次生成覆盖）。
-
-<!-- BEGIN GENERATED: contributors -->
-| 贡献者 | 插件 | 提交 |
-|---|---|---|
-| [@haibiandefengshu](https://github.com/haibiandefengshu) | `comfy-draw`（本地绘图 (ComfyUI)）、`jm-comic`（禁漫下载）、`media-vision`（识图与看视频）、`persona-grow`（人设生长）、`persona-scope`（rp人设）、`persona-scope-ext`（专属人设）、`pixiv-pid`（Pixiv 发图）、`sticker-reply`（表情标注）、`trpg-forwarder`（跑团转发器）、`weather-card`（天气播报） | [PR #1](https://github.com/roost-qq/qq-bot-roost-plugins/pull/1)、[PR #2](https://github.com/roost-qq/qq-bot-roost-plugins/pull/2)、[PR #3](https://github.com/roost-qq/qq-bot-roost-plugins/pull/3)、[PR #4](https://github.com/roost-qq/qq-bot-roost-plugins/pull/4)、[PR #5](https://github.com/roost-qq/qq-bot-roost-plugins/pull/5)、[PR #7](https://github.com/roost-qq/qq-bot-roost-plugins/pull/7)、[PR #8](https://github.com/roost-qq/qq-bot-roost-plugins/pull/8)、[PR #9](https://github.com/roost-qq/qq-bot-roost-plugins/pull/9)、[PR #10](https://github.com/roost-qq/qq-bot-roost-plugins/pull/10)、[PR #11](https://github.com/roost-qq/qq-bot-roost-plugins/pull/11)、[PR #12](https://github.com/roost-qq/qq-bot-roost-plugins/pull/12)、[PR #13](https://github.com/roost-qq/qq-bot-roost-plugins/pull/13)、[PR #15](https://github.com/roost-qq/qq-bot-roost-plugins/pull/15)、[PR #16](https://github.com/roost-qq/qq-bot-roost-plugins/pull/16)、[PR #17](https://github.com/roost-qq/qq-bot-roost-plugins/pull/17) |
-<!-- END GENERATED: contributors -->
-
-索引条目里的 `author` **一律写投稿者的 GitHub 用户名**，维护者不占署名；`credits` 只补充 PR 编号。这两个字段现在由 `enrich-index.mjs` 从合并的 PR 元数据注入，不再手填——PR 发起人是 GitHub 的权威数据，比投稿人自述可靠。索引的 sha256 约束的是「装到的是哪份内容」，**不约束 `author` 字段**——两者是两回事。
+贡献归属以 [GitHub Contributors](https://github.com/roost-qq/qq-bot-roost-plugins/graphs/contributors)
+和各 PR 记录为准；README 不再维护贡献者表，也不在索引里维护署名。
+`index.json` 里的 `author` 只是市场搜索用的展示提示，不代表署名。
 
 也想放一个进来？见上面「[怎么提交插件](#怎么提交插件贡献者)」。
 
