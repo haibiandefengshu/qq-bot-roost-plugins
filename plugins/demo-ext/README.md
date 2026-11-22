@@ -215,6 +215,8 @@ node scripts/build-index.mjs            # 重算 sha256 并写 index.json
 node scripts/build-index.mjs --check    # CI 用：索引与目录必须一致
 ```
 
+把生成的 `index.json` 与插件目录一起提交 PR；CI 会复算并校验，维护者字段不要手填。
+
 装的时候市场会：下载目录 → `hashDir` 比对索引里的 `sha256` → 校验清单 → 发令牌 → 落位 →
 初始化权限组 `ext_<id>` → 写 `cordis.patch.yml` 受管块。**哈希不一致直接拒装**，所以改完一定要重跑
 `build-index`。
