@@ -1,5 +1,5 @@
 {
-  "schema": 3,
+  "schema": 4,
   "repo": "roost-qq/qq-bot-roost-plugins",
   "branch": "main",
   "updated": "2026-11-23",
@@ -79,7 +79,11 @@
         "host:maintenance"
       ],
       "category": "媒体与内容",
-      "sha256_v2": "9f2fcb9534e5ada4d345df2d249aa28f884003d955ecf7a7e4d90ce34735d552"
+      "sha256_v2": "9f2fcb9534e5ada4d345df2d249aa28f884003d955ecf7a7e4d90ce34735d552",
+      "ui": {
+        "page": "ui/index.html",
+        "runtime": "inprocess"
+      }
     },
     {
       "id": "comfy-draw",
@@ -260,7 +264,11 @@
       "verified": "official",
       "author": "tdcq9594",
       "category": "绘图与生图",
-      "sha256_v2": "d5d1be38a535f6ed633026f1d688fde8a317302378e657dd3af8256d11af5f2a"
+      "sha256_v2": "d5d1be38a535f6ed633026f1d688fde8a317302378e657dd3af8256d11af5f2a",
+      "ui": {
+        "page": "ui/index.html",
+        "runtime": "inprocess"
+      }
     },
     {
       "id": "imgbed",
@@ -421,7 +429,11 @@
       "path": "plugins/persona-grow",
       "sha256": "ede8353d78af05813264e837081ca32937cc86044146483d2e103ac3d06f505b",
       "category": "人格与人设",
-      "sha256_v2": "c1e84d73233f4e7a0edf3ebdcc1d1c1f3b213e9bd30d23a19b96ea041117c6f1"
+      "sha256_v2": "c1e84d73233f4e7a0edf3ebdcc1d1c1f3b213e9bd30d23a19b96ea041117c6f1",
+      "ui": {
+        "page": "page.html",
+        "runtime": "inprocess"
+      }
     },
     {
       "id": "persona-scope",
@@ -461,7 +473,11 @@
       "sha256": "53e906100df370576a5a21b6beacceebdc495385c7d0e15003bdfc2f0b59d2cf",
       "category": "人格与人设",
       "author": "haibiandefengshu",
-      "sha256_v2": "99122afecb087c9705c18544654afd8e823a3f66af510c518379666d1681fd88"
+      "sha256_v2": "99122afecb087c9705c18544654afd8e823a3f66af510c518379666d1681fd88",
+      "ui": {
+        "page": "page.html",
+        "runtime": "inprocess"
+      }
     },
     {
       "id": "pixiv-pid",
@@ -525,7 +541,11 @@
       "commands": [
         "sticker_decide"
       ],
-      "sha256_v2": "598b9ed3a322a0cd0122052bef1a9f786917f2045f8e837a41aa30d84f28c96e"
+      "sha256_v2": "598b9ed3a322a0cd0122052bef1a9f786917f2045f8e837a41aa30d84f28c96e",
+      "ui": {
+        "page": "page.html",
+        "runtime": "inprocess"
+      }
     },
     {
       "id": "trpg-forwarder",
@@ -563,7 +583,11 @@
       "scopes": [],
       "path": "plugins/voice-reply",
       "sha256": "a366825d4965b378b3d4690241f6a601546e9a5ef8a75a69da06fbb9e2850a0a",
-      "sha256_v2": "1e7cb362a38b2fccdeb56b38371b206e927469310cfbc25a288608bc4cc49107"
+      "sha256_v2": "1e7cb362a38b2fccdeb56b38371b206e927469310cfbc25a288608bc4cc49107",
+      "ui": {
+        "page": "page.html",
+        "runtime": "inprocess"
+      }
     },
     {
       "id": "weather-card",
