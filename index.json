@@ -1,5 +1,5 @@
 {
-  "schema": 3,
+  "schema": 4,
   "repo": "roost-qq/qq-bot-roost-plugins",
   "branch": "main",
   "updated": "2026-11-23",
@@ -79,7 +79,12 @@
         "host:maintenance"
       ],
       "category": "媒体与内容",
-      "sha256_v2": "9f2fcb9534e5ada4d345df2d249aa28f884003d955ecf7a7e4d90ce34735d552"
+      "sha256_v2": "9f2fcb9534e5ada4d345df2d249aa28f884003d955ecf7a7e4d90ce34735d552",
+      "ui": {
+        "page": "ui/index.html",
+        "runtime": "inprocess"
+      },
+      "verified": "official"
     },
     {
       "id": "comfy-draw",
@@ -101,7 +106,8 @@
       "sha256": "5a4503b929bad82cb628227e38c2da622c5802b81a8c012ad403cb4d609b4e0b",
       "frameworkVersion": ">=0.6.13",
       "category": "绘图与生图",
-      "sha256_v2": "892cbc7ec1db9460475bad25c289737fe264cff203859700c40111056e1667bf"
+      "sha256_v2": "892cbc7ec1db9460475bad25c289737fe264cff203859700c40111056e1667bf",
+      "verified": "official"
     },
     {
       "id": "demo-ext",
@@ -118,7 +124,8 @@
       "path": "plugins/demo-ext",
       "sha256": "098373fc50c036b02b50c4e326800e2823d12599a9b03279a21852585db17ac9",
       "category": "开发示例",
-      "sha256_v2": "58374bfbca8062c65e89d8f4dbf577801a894b9b6dbcfbf03b4e27f64c7d75d0"
+      "sha256_v2": "58374bfbca8062c65e89d8f4dbf577801a894b9b6dbcfbf03b4e27f64c7d75d0",
+      "verified": "official"
     },
     {
       "id": "demo-x",
@@ -173,7 +180,8 @@
       "path": "plugins/douluo",
       "sha256": "964c34e58bd0dc3a35b232b525b0644ec0767138fd2a224ce9264c716dd483b0",
       "category": "游戏与娱乐",
-      "sha256_v2": "cecf315c80d5dd56c9adc7fb2320659ec88e0d7d9fa1e81f922f28b3cc186bd0"
+      "sha256_v2": "cecf315c80d5dd56c9adc7fb2320659ec88e0d7d9fa1e81f922f28b3cc186bd0",
+      "verified": "official"
     },
     {
       "id": "echo",
@@ -260,7 +268,11 @@
       "verified": "official",
       "author": "tdcq9594",
       "category": "绘图与生图",
-      "sha256_v2": "d5d1be38a535f6ed633026f1d688fde8a317302378e657dd3af8256d11af5f2a"
+      "sha256_v2": "d5d1be38a535f6ed633026f1d688fde8a317302378e657dd3af8256d11af5f2a",
+      "ui": {
+        "page": "ui/index.html",
+        "runtime": "inprocess"
+      }
     },
     {
       "id": "imgbed",
@@ -302,7 +314,8 @@
       "sha256": "fb6e8f0d8a9952345f41581d312f29b90704dd061babb5f6228cebdef748d227",
       "frameworkVersion": ">=0.6.13",
       "category": "媒体与内容",
-      "sha256_v2": "184ebc3a5b09541d9c892d92c5a122f82c072e61d176b140748038c0f751180d"
+      "sha256_v2": "184ebc3a5b09541d9c892d92c5a122f82c072e61d176b140748038c0f751180d",
+      "verified": "official"
     },
     {
       "id": "kun",
@@ -372,7 +385,8 @@
       "runtime": "node",
       "path": "plugins/media-parser",
       "sha256": "f45db73b07595c209b0a5b83945ebd30ac8a711ff961263f982ff51dcdeebf4e",
-      "sha256_v2": "2752e789d0404f6cb5fe1d5e07e88545503f11179a563360224b502eaa0380c2"
+      "sha256_v2": "2752e789d0404f6cb5fe1d5e07e88545503f11179a563360224b502eaa0380c2",
+      "verified": "official"
     },
     {
       "id": "media-vision",
@@ -395,7 +409,8 @@
       "sha256": "12aca28c035e1c43185f4fde25faf404d66e24005ef852a0e8e7cdfa122be7c1",
       "frameworkVersion": ">=0.6.13",
       "category": "媒体与内容",
-      "sha256_v2": "06e6aa9790236ca43344c60a1d6c70dec95842e68c5f84d9d078f0745c1f8635"
+      "sha256_v2": "06e6aa9790236ca43344c60a1d6c70dec95842e68c5f84d9d078f0745c1f8635",
+      "verified": "official"
     },
     {
       "id": "persona-grow",
@@ -421,7 +436,12 @@
       "path": "plugins/persona-grow",
       "sha256": "ede8353d78af05813264e837081ca32937cc86044146483d2e103ac3d06f505b",
       "category": "人格与人设",
-      "sha256_v2": "c1e84d73233f4e7a0edf3ebdcc1d1c1f3b213e9bd30d23a19b96ea041117c6f1"
+      "sha256_v2": "c1e84d73233f4e7a0edf3ebdcc1d1c1f3b213e9bd30d23a19b96ea041117c6f1",
+      "ui": {
+        "page": "page.html",
+        "runtime": "inprocess"
+      },
+      "verified": "official"
     },
     {
       "id": "persona-scope",
@@ -443,7 +463,8 @@
       "sha256": "76f15ed64e97d6d38e139da94de4b881104738449973cbaf87b7b69a22d3fd5f",
       "frameworkVersion": ">=0.6.18",
       "category": "人格与人设",
-      "sha256_v2": "bac880ff01cb22dc8a471fb00f3c734b8602d9f7851a2a2ba5f431d65f981f68"
+      "sha256_v2": "bac880ff01cb22dc8a471fb00f3c734b8602d9f7851a2a2ba5f431d65f981f68",
+      "verified": "official"
     },
     {
       "id": "persona-scope-ext",
@@ -461,7 +482,12 @@
       "sha256": "53e906100df370576a5a21b6beacceebdc495385c7d0e15003bdfc2f0b59d2cf",
       "category": "人格与人设",
       "author": "haibiandefengshu",
-      "sha256_v2": "99122afecb087c9705c18544654afd8e823a3f66af510c518379666d1681fd88"
+      "sha256_v2": "99122afecb087c9705c18544654afd8e823a3f66af510c518379666d1681fd88",
+      "ui": {
+        "page": "page.html",
+        "runtime": "inprocess"
+      },
+      "verified": "official"
     },
     {
       "id": "pixiv-pid",
@@ -479,7 +505,8 @@
       "sha256": "31907c937f2fbfe90272e12bcfd5f9a14bbb203cb8116ce410422a130455f0b2",
       "frameworkVersion": ">=0.6.13",
       "category": "绘图与生图",
-      "sha256_v2": "d4479feed39b780b68b98091ec9b788c20646cd24b539b0f7be54c6cb7ce50b8"
+      "sha256_v2": "d4479feed39b780b68b98091ec9b788c20646cd24b539b0f7be54c6cb7ce50b8",
+      "verified": "official"
     },
     {
       "id": "render",
@@ -525,7 +552,12 @@
       "commands": [
         "sticker_decide"
       ],
-      "sha256_v2": "598b9ed3a322a0cd0122052bef1a9f786917f2045f8e837a41aa30d84f28c96e"
+      "sha256_v2": "598b9ed3a322a0cd0122052bef1a9f786917f2045f8e837a41aa30d84f28c96e",
+      "ui": {
+        "page": "page.html",
+        "runtime": "inprocess"
+      },
+      "verified": "official"
     },
     {
       "id": "trpg-forwarder",
@@ -547,7 +579,8 @@
       "sha256": "25ccabc1b702a7704d194bb9d26f6b3f1413fe4603e5f772bc9e91eace12c4f1",
       "frameworkVersion": ">=1.0.0",
       "category": "游戏与娱乐",
-      "sha256_v2": "777ec3168b25a6737125e3b6326a8fec5a0b8fe28fe609a9096aeb0ac61d9553"
+      "sha256_v2": "777ec3168b25a6737125e3b6326a8fec5a0b8fe28fe609a9096aeb0ac61d9553",
+      "verified": "official"
     },
     {
       "id": "voice-reply",
@@ -563,7 +596,12 @@
       "scopes": [],
       "path": "plugins/voice-reply",
       "sha256": "a366825d4965b378b3d4690241f6a601546e9a5ef8a75a69da06fbb9e2850a0a",
-      "sha256_v2": "1e7cb362a38b2fccdeb56b38371b206e927469310cfbc25a288608bc4cc49107"
+      "sha256_v2": "1e7cb362a38b2fccdeb56b38371b206e927469310cfbc25a288608bc4cc49107",
+      "ui": {
+        "page": "page.html",
+        "runtime": "inprocess"
+      },
+      "verified": "official"
     },
     {
       "id": "weather-card",
@@ -585,7 +623,8 @@
       "sha256": "44f36d30482b3ef0b71005ef896be062559b5bd53198a2f8cc7c52df3e875df4",
       "frameworkVersion": ">=0.8.6",
       "category": "群管与效率",
-      "sha256_v2": "ff433bccc80a43cbcd4aba22b7560833b1578f87af13d74699dc6ad574df8747"
+      "sha256_v2": "ff433bccc80a43cbcd4aba22b7560833b1578f87af13d74699dc6ad574df8747",
+      "verified": "official"
     }
   ],
   "deps": [

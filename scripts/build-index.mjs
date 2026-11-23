@@ -42,8 +42,10 @@ const TARGET = path.join(ROOT, 'index.json');
  * 3 = 2026-11-23 双写：`sha256` 退回 algo1（让已发布的 1.4.0 用户装得上扩展），
  *     新增 `sha256_v2` 存 algo2（新版优先用）。schema 变更让 check-versions
  *     跳过跨版本的「已发布内容不可变」比对——全量 sha256 会合法重算。
+ * 4 = 2026-11-23 扩展条目新增 `ui`（page / runtime），让市场卡片能算出和
+ *     安装确认一致的权限等级。纯结构变更，不改哈希算法。
  */
-const SCHEMA_VERSION = 3;
+const SCHEMA_VERSION = 4;
 
 const checkOnly = process.argv.includes('--check');
 
@@ -116,6 +118,20 @@ async function readMeta(dir) {
       ...(isExt && Array.isArray(raw.scopes) ? { scopes: raw.scopes.map(String) } : {}),
       ...(isExt && Array.isArray(raw.overrides) ? { overrides: raw.overrides.map(String) } : {}),
       ...(isExt && typeof raw.form === 'string' && raw.form ? { form: raw.form } : {}),
+      /**
+       * 界面声明也要进索引（2026-11-23）：ui.page 同源面板、ui.runtime=inprocess
+       * 都会把等级抬到 L2。市场卡片拿不到它就会把「带设置页的扩展」显示成 L0/L1，
+       * 和安装确认页算出来的 L2 对不上。只保留分级用得到的两个字段，别把整个
+       * ui（actions/nav/config 等一大坨）塞进索引。
+       */
+      ...(isExt && raw.ui && typeof raw.ui === 'object'
+        ? {
+          ui: {
+            ...(raw.ui.page ? { page: String(raw.ui.page) } : {}),
+            ...(raw.ui.runtime ? { runtime: String(raw.ui.runtime) } : {}),
+          },
+        }
+        : {}),
     };
   }
 
@@ -165,7 +181,7 @@ async function readMeta(dir) {
 const STRUCT_FIELDS = [
   'id', 'version', 'path', 'runtime', 'sha256', 'sha256_v2', 'frameworkVersion', 'kind',
   /** 权限声明：改了 plugin.json 忘了重建索引，--check 必须能拦住 */
-  'scopes', 'overrides', 'form',
+  'scopes', 'overrides', 'form', 'ui',
 ];
 
 /**
@@ -308,8 +324,8 @@ async function build() {
        */
       if (p.kind === undefined) delete out.kind;
       if (!p.version) delete out.version;
-      /** 权限声明同样不能继承旧值：扩展删掉一个敏感 scope 必须能降档 */
-      for (const k of ['scopes', 'overrides', 'form']) {
+      /** 权限声明同样不能继承旧值：扩展删掉一个敏感 scope / ui 必须能降档 */
+      for (const k of ['scopes', 'overrides', 'form', 'ui']) {
         if (p[k] === undefined) delete out[k];
       }
       return out;
