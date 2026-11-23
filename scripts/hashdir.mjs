@@ -17,9 +17,17 @@ import crypto from 'node:crypto';
  * 哈希算法版本。算法或跳过规则一改就 +1，并让框架的 src/hashdir.js 同步
  * 带上同一个标记再发版。跨仓一致性测试据此区分「算法还没同步到框架」
  * （warning + skip）和「两边标记一致却算出不同值」（硬失败）。
- * 2 = 2026-11-21 起排除纯文档（.md / LICENSE）。
+ * 2 = 2026-11-21 起排除纯文档（.md / LICENSE），以及运行时状态文件。
  */
 export const HASH_ALGO = 2;
+
+/**
+ * algo1 的老跳过表：dsh-roost 1.4.0 及以前就是这几项。
+ * 索引双写时 `sha256` 字段用它算（老版本只认这个字段），必须与框架侧
+ * `src/ext-bundle.js` 的 LEGACY_SKIP_DIRS / LEGACY_SKIP_FILES 逐项一致。
+ */
+const LEGACY_SKIP_DIRS = ['node_modules', '.venv', 'venv', '__pycache__', '.git', '.idea', '.vscode'];
+const LEGACY_SKIP_FILES = ['.deps.json', '.DS_Store', 'Thumbs.db'];
 
 /** 不参与哈希的东西：依赖目录、缓存、VCS/IDE 元数据（每台机器都不一样） */
 const SKIP_DIRS = new Set([
@@ -59,7 +67,9 @@ function normalize(buf) {
   return Buffer.from(buf.toString('latin1').replace(/\r\n/g, '\n'), 'latin1');
 }
 
-async function collect(root) {
+async function collect(root, algo) {
+  const dirs = algo >= 2 ? SKIP_DIRS : new Set(LEGACY_SKIP_DIRS);
+  const files = algo >= 2 ? SKIP_FILES : new Set(LEGACY_SKIP_FILES);
   const out = [];
   const walk = async (dir, prefix) => {
     let items;
@@ -70,19 +80,21 @@ async function collect(root) {
     }
     for (const it of items) {
       if (it.isDirectory()) {
-        if (SKIP_DIRS.has(it.name)) continue;
+        if (dirs.has(it.name)) continue;
         await walk(path.join(dir, it.name), prefix ? `${prefix}/${it.name}` : it.name);
       } else if (it.isFile()) {
-        if (SKIP_FILES.has(it.name)) continue;
+        if (files.has(it.name)) continue;
         /**
-         * 纯文档不参与插件内容指纹：和框架 src/hashdir.js 的 collect 保持一致。
+         * algo2：纯文档不参与插件内容指纹（algo1 保留，供老版本安装器校验）。
          * 改 README / LICENSE 不该逼维护者 bump 版本；LICENSE 是插件作者自带的
          * 协议声明（可自定义），不是代码。两份实现必须同步，由
          * test/hash-consistency.mjs 守卫。
          */
-        const lower = it.name.toLowerCase();
-        if (lower.endsWith('.md')) continue;
-        if (/^(license|licence|copying)(\.[a-z0-9]+)?$/.test(lower)) continue;
+        if (algo >= 2) {
+          const lower = it.name.toLowerCase();
+          if (lower.endsWith('.md')) continue;
+          if (/^(license|licence|copying)(\.[a-z0-9]+)?$/.test(lower)) continue;
+        }
         out.push(prefix ? `${prefix}/${it.name}` : it.name);
       }
       // 符号链接一律跳过：可能指向仓库外，内容不稳定
@@ -92,8 +104,8 @@ async function collect(root) {
   return out.sort();
 }
 
-export async function hashDir(dir) {
-  const files = await collect(dir);
+export async function hashDir(dir, { algo = HASH_ALGO } = {}) {
+  const files = await collect(dir, algo);
   const h = crypto.createHash('sha256');
   for (const rel of files) {
     const buf = normalize(await fs.readFile(path.join(dir, rel)));

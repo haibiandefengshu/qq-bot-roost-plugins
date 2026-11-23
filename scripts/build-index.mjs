@@ -14,10 +14,14 @@
  * 框架仓库里也有一个 `scripts/build-market-index.mjs`，两个的**合并规则
  * 必须一致**，否则谁跑一次都会把对方写的内容改一遍。改动时两边一起改。
  *
- * 哈希算法和框架的 `src/hashdir.js` 是同一套（那边是权威实现）：
+ * 哈希算法和框架的 `src/ext-bundle.js` 是同一套（那边是权威实现）：
  * 按相对路径排序，逐个喂 `路径 \0 大小 \0 内容 \0`，最后取 sha256；
  * 文本文件的 CRLF 先归一成 LF（Windows 检出和 GitHub 打的 tarball
  * 换行符不同，不归一两边永远对不上）。
+ *
+ * 每个扩展条目双写两个哈希：`sha256` 是 algo1（排除依赖 / VCS 元数据，
+ * 文档算进去 —— 已发布的 1.4.0 认这个），`sha256_v2` 是 algo2（额外排除
+ * 纯文档与运行时状态 —— 新版优先用）。这样索引一次发布，新旧客户端都装得上。
  * 这里没有 import 框架的代码，因为插件仓库要能单独 clone 下来就能跑。
  */
 import fs from 'node:fs/promises';
@@ -35,8 +39,11 @@ const TARGET = path.join(ROOT, 'index.json');
  * 索引结构版本。schema 变更意味着 sha256 算法/结构变了、全量哈希会合法重算；
  * check-versions 的第 2 道闸据此跳过跨版本的「已发布内容不可变」比对。
  * 2 = 2026-11-21 起 hashdir 排除纯文档（.md / LICENSE），所有 sha256 重算。
+ * 3 = 2026-11-23 双写：`sha256` 退回 algo1（让已发布的 1.4.0 用户装得上扩展），
+ *     新增 `sha256_v2` 存 algo2（新版优先用）。schema 变更让 check-versions
+ *     跳过跨版本的「已发布内容不可变」比对——全量 sha256 会合法重算。
  */
-const SCHEMA_VERSION = 2;
+const SCHEMA_VERSION = 3;
 
 const checkOnly = process.argv.includes('--check');
 
@@ -156,7 +163,7 @@ async function readMeta(dir) {
  * 产出与之前逐字节一致。
  */
 const STRUCT_FIELDS = [
-  'id', 'version', 'path', 'runtime', 'sha256', 'frameworkVersion', 'kind',
+  'id', 'version', 'path', 'runtime', 'sha256', 'sha256_v2', 'frameworkVersion', 'kind',
   /** 权限声明：改了 plugin.json 忘了重建索引，--check 必须能拦住 */
   'scopes', 'overrides', 'form',
 ];
@@ -259,7 +266,17 @@ async function build() {
       console.warn(`  ${d.name}: 声明的 id 是 ${meta.id}，与目录名不一致（以目录名为准）`);
       meta.id = d.name;
     }
-    found.push({ ...meta, path: `plugins/${d.name}`, sha256: await hashDir(sub) });
+    /**
+     * 双写哈希（issue #37）：`sha256` 是 algo1，喂给还在跑 1.4.0 的用户；
+     * `sha256_v2` 是 algo2，新版安装器优先认。同一个目录算两遍，
+     * 任一匹配即通过校验——过渡期无论客户端新旧都装得上。
+     */
+    found.push({
+      ...meta,
+      path: `plugins/${d.name}`,
+      sha256: await hashDir(sub, { algo: 1 }),
+      sha256_v2: await hashDir(sub),
+    });
   }
   found.sort((a, b) => a.id.localeCompare(b.id));
 
