@@ -29,9 +29,10 @@
  *
  * **纯文档改动豁免**（2026-11-21）：第 1 道闸忽略 .md 与 LICENSE 类文件。
  * 改 README / 协议声明不改变用户装到的代码，不该逼着 bump 版本（此前
- * 「链接改动按 CI 规则升 patch」就是被这条误伤）。第 2 道闸不受影响——
- * 它比的是 index.json 里已发布版本的 sha256，而 hashdir 同样排除文档与
- * LICENSE，它们不进索引的内容指纹（两份 hashdir 由跨仓一致性测试守卫）。
+ * 「链接改动按 CI 规则升 patch」就是被这条误伤）。第 2 道闸同样豁免——
+ * 它比的是 index.json 已发布版本的 `sha256_v2`（algo2，排除文档与 LICENSE），
+ * 文档不进这道闸的内容指纹（两份 hashdir 由跨仓一致性测试守卫）。
+ * 注意 schema 3 的 `sha256` 已退回 algo1、含文档，不能拿来比；见 indexTriples。
  *
  * **扩展（`kind: 'dsh-extension'`）不参与这两道闸**：它们的更新判定走索引里的
  * `sha256`（安装器每次比对目录哈希），版本号不承载「已发布」语义，改内容
@@ -135,7 +136,13 @@ function indexTriples(raw) {
   for (const p of j?.plugins ?? []) {
     if (!p?.id || !p.version || !p.sha256) continue;
     if (p.kind === 'dsh-extension') continue;
-    m.set(`${p.id}@${p.version}`, String(p.sha256).toLowerCase());
+    /**
+     * 优先用 algo2（`sha256_v2`）当内容指纹：它排除纯文档，改 README / LICENSE
+     * 不会让这道闸误报「已发布内容被换掉」。存量索引没有该字段，退回 `sha256`
+     * ——旧 schema 的 sha256 本身就是 algo2 值，语义一致。绝不能用 schema 3
+     * 的 `sha256`（algo1，含文档），否则纯文档改动会被判成篡改。
+     */
+    m.set(`${p.id}@${p.version}`, String(p.sha256_v2 || p.sha256).toLowerCase());
   }
   // schema 变了意味着哈希算法/索引结构变了（如 1→2 排除文档与 LICENSE），
   // 全量 sha256 会合法地重算，跨 schema 比「已发布内容不可变」没有意义。
