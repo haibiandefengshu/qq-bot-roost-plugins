@@ -1,0 +1,743 @@
+<!doctype html>
+<html lang="zh-CN">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>小说/人设卡创作</title>
+<style>
+  :root{font:14px/1.55 system-ui,sans-serif;color:var(--dsw-alias-label-primary,#eee);background:transparent;color-scheme:light dark}
+  *{box-sizing:border-box}body{margin:0;padding:18px;max-width:1180px}h1{font-size:22px;margin:0}h2{font-size:17px;margin:0 0 12px}h3{font-size:15px;margin:0 0 8px}p{margin:6px 0}
+  .muted{opacity:.72}.ok{color:#67c27c}.bad{color:#e97878}.warn{color:#dfb76a}.mono{font-family:ui-monospace,monospace;font-size:12px;overflow-wrap:anywhere}
+  .top,.row{display:flex;gap:9px;flex-wrap:wrap;align-items:center}.top{justify-content:space-between;margin-bottom:12px}.spacer{flex:1}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(185px,1fr));gap:10px}.card,.panel{border:1px solid color-mix(in srgb,currentColor 18%,transparent);border-radius:10px;padding:13px;background:color-mix(in srgb,currentColor 3%,transparent)}
+  .tabs{display:flex;gap:4px;overflow:auto;margin:14px 0;border-bottom:1px solid color-mix(in srgb,currentColor 16%,transparent)}.tabs button{border:0;border-bottom:2px solid transparent;border-radius:0;background:transparent;padding:9px 12px}.tabs button.active{border-color:currentColor;font-weight:650}
+  button{font:inherit;color:inherit;background:var(--dsw-alias-background-secondary,#32343a);border:1px solid color-mix(in srgb,currentColor 30%,transparent);border-radius:6px;padding:7px 11px;cursor:pointer}button:hover{border-color:currentColor}button:disabled{opacity:.5;cursor:wait}button.danger{color:#e97878}
+  input,select,textarea{font:inherit;color:inherit;background:color-mix(in srgb,currentColor 5%,transparent);border:1px solid color-mix(in srgb,currentColor 28%,transparent);border-radius:6px;padding:8px;min-width:0;width:100%}textarea{resize:vertical;min-height:110px;line-height:1.65}
+  label{display:grid;gap:5px;font-size:13px}.form{display:grid;gap:12px}.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}.message{min-height:25px;white-space:pre-wrap;margin:8px 0}.hidden{display:none!important}
+  .book-select{max-width:310px}.persona-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:10px}.persona-head{display:flex;justify-content:space-between;gap:8px}.persona-meta{font-size:12px;opacity:.78;margin-top:7px;white-space:pre-wrap}.chapter-row{display:grid;grid-template-columns:45px minmax(130px,1fr) 70px 85px auto;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid color-mix(in srgb,currentColor 12%,transparent)}.chapter-row:last-child{border:0}
+  .status-pill{display:inline-block;border-radius:999px;padding:1px 7px;font-size:12px;border:1px solid currentColor}.task-row{display:grid;grid-template-columns:minmax(160px,1.2fr) 80px 80px minmax(140px,1fr);gap:8px;padding:8px 0;border-bottom:1px solid color-mix(in srgb,currentColor 12%,transparent)}
+  @media(max-width:650px){body{padding:12px}.chapter-row{grid-template-columns:38px 1fr 60px}.chapter-row .optional{display:none}.task-row{grid-template-columns:1fr 70px 70px}.task-row .task-note{grid-column:1/-1}}
+</style>
+<div class="top">
+  <div><h1>小说/人设卡创作</h1><p class="muted">书库、人设卡、章节版本与朗读设置</p></div>
+  <div class="row"><button id="refresh">刷新</button><button id="recover">恢复任务</button><button id="deps">安装 FFmpeg</button></div>
+</div>
+<div class="row">
+  <label class="book-select">私人书库<select id="ownerSelect"><option value="">还没有书库</option></select></label>
+  <label class="book-select">当前书籍<select id="bookSelect"><option value="">还没有书籍</option></select></label>
+  <span id="currentSummary" class="muted"></span>
+</div>
+<div id="message" class="message" role="status"></div>
+<div class="grid" id="status"></div>
+
+<nav class="tabs" aria-label="小说管理">
+  <button data-view="library" class="active">书籍资料</button>
+  <button data-view="personas">人设卡</button>
+  <button data-view="chapters">章节编辑</button>
+  <button data-view="reading">朗读设置</button>
+  <button data-view="tasks">任务</button>
+  <button data-view="system">运行状态</button>
+</nav>
+
+<section data-panel="library">
+  <div class="panel">
+    <h2>书籍资料</h2>
+    <form id="bookForm" class="form">
+      <div class="two">
+        <label>书名<input id="bookTitle" maxlength="80" required></label>
+        <label>单章目标字数<input id="targetChars" type="number" min="1000" max="5000" step="100"></label>
+        <label>题材<input id="genre" maxlength="500"></label>
+      </div>
+      <label>核心故事<textarea id="core" maxlength="4000"></textarea></label>
+      <label>世界观<textarea id="world" maxlength="12000"></textarea></label>
+      <label>文风<textarea id="style" maxlength="12000"></textarea></label>
+      <label>避雷与禁止项<textarea id="avoid" maxlength="12000"></textarea></label>
+      <label>大纲（一行一条）<textarea id="outline" maxlength="1000000"></textarea></label>
+      <div class="row"><button type="submit">保存书籍资料</button><span class="spacer"></span><button type="button" id="deleteBook" class="danger">删除这本书</button></div>
+    </form>
+  </div>
+</section>
+
+<section data-panel="personas" class="hidden">
+  <div class="row" style="justify-content:space-between;margin-bottom:10px"><h2 style="margin:0">人设卡</h2><div class="row"><button id="generatePersona">按书稿生成一张</button><button id="newPersona">新建人设卡</button></div></div>
+  <div id="personaList" class="persona-grid"></div>
+  <div id="personaEditor" class="panel hidden" style="margin-top:12px">
+    <h2 id="personaEditorTitle">新建人设卡</h2>
+    <form id="personaForm" class="form">
+      <input id="personaId" type="hidden">
+      <div class="two">
+        <label>姓名<input id="personaName" maxlength="80" required></label>
+        <label>别名（逗号分隔）<input id="personaAliases" maxlength="1000"></label>
+        <label>身份/职业<input id="personaIdentity" maxlength="300"></label>
+        <label>语言风格<input id="personaSpeech" maxlength="2000"></label>
+      </div>
+      <label>外貌<textarea id="personaAppearance" maxlength="3000"></textarea></label>
+      <label>性格<textarea id="personaPersonality" maxlength="4000"></textarea></label>
+      <label>人物关系<textarea id="personaRelationship" maxlength="2000"></textarea></label>
+      <label>目标与动机<textarea id="personaGoal" maxlength="2000"></textarea></label>
+      <label>核心冲突<textarea id="personaConflict" maxlength="2000"></textarea></label>
+      <label>秘密与隐情<textarea id="personaSecret" maxlength="2000"></textarea></label>
+      <label>人物弧光<textarea id="personaArc" maxlength="3000"></textarea></label>
+      <label>补充备注<textarea id="personaNotes" maxlength="4000"></textarea></label>
+      <div class="row"><button type="submit">保存人设卡</button><button type="button" id="cancelPersona">取消</button><span class="spacer"></span><button type="button" id="deletePersona" class="danger hidden">删除</button></div>
+    </form>
+  </div>
+</section>
+
+<section data-panel="chapters" class="hidden">
+  <div class="panel">
+    <h2>章节管理</h2>
+    <div id="chapterList" class="mono"></div>
+  </div>
+  <div id="chapterEditor" class="panel hidden" style="margin-top:12px">
+    <div class="row"><h2 id="chapterEditorTitle">章节编辑</h2><span id="chapterVersion" class="status-pill"></span></div>
+    <form id="chapterForm" class="form">
+      <input id="chapterNo" type="hidden"><input id="chapterExpectedVersion" type="hidden">
+      <label>章节标题<input id="chapterTitle" maxlength="120" required></label>
+      <label>正文<textarea id="chapterBody" maxlength="2000000" style="min-height:420px" required></textarea></label>
+      <div class="row"><button type="submit">保存为新版本</button><button type="button" id="cancelChapter">取消</button><span class="muted">旧版本不会删除，可在 QQ 端恢复。</span></div>
+    </form>
+  </div>
+</section>
+
+<section data-panel="reading" class="hidden">
+  <div class="panel">
+    <h2>朗读设置</h2>
+    <form id="readingForm" class="form">
+      <div class="two">
+        <label>朗读来源<select id="readingSource"><option value="">不设置</option><option value="official">官方语音</option><option value="extension">语音回复扩展</option></select></label>
+        <label>语速<input id="readingSpeed" type="number" min=".5" max="2" step=".05"></label>
+        <label>扩展音色方案<select id="readingProfile"><option value="">请选择</option></select></label>
+        <label>官方音色<input id="readingOfficialVoice" maxlength="100"></label>
+      </div>
+      <label class="row"><input id="autoRead" type="checkbox" style="width:auto"> 续写完成后自动朗读</label>
+      <div id="readingAvailability" class="muted"></div>
+      <div id="readingSaved" class="mono muted"></div>
+      <div id="readingOfficialState" class="mono muted"></div>
+      <div id="readingMissing" class="muted"></div>
+      <div id="readingLimitations" class="muted"></div>
+      <div class="row">
+        <button type="submit">保存朗读设置</button>
+        <button type="button" id="readingApplyGlobal" class="hidden">使用当前全局语音与语速（替换本书已存官方设置）</button>
+      </div>
+    </form>
+    <p class="muted" style="margin-top:14px">设置完成后，在 QQ 发送 <b>/小说 朗读 [章号]</b> 生成 MP3。手动朗读仍沿用现有任务队列和 QQ 文件投递。</p>
+  </div>
+</section>
+
+<section data-panel="tasks" class="hidden">
+  <div class="panel"><h2>最近任务</h2><div id="taskList"></div></div>
+</section>
+
+<section data-panel="system" class="hidden">
+  <div class="panel">
+    <h2>运行能力</h2><div id="systemGrid" class="grid"></div>
+    <p class="muted">书籍数据保存在扩展专属目录。面板只接受宿主已经认证的当前主人，不会把私人书库暴露给普通 MCP 工具。</p>
+  </div>
+</section>
+
+<script>
+const $ = (selector) => document.querySelector(selector);
+const message = $('#message');
+const ownerSelect = $('#ownerSelect');
+const bookSelect = $('#bookSelect');
+let ownerChoices = [];
+let currentOwnerId = '';
+let books = [];
+let currentBook = null;
+let voiceSources = { official: {}, extension: { profiles: [] } };
+let savedReadingVoice = { source: '', profileId: '', voice: '', speed: 1 };
+let busy = false;
+
+function element(tag, attrs = {}, children = []) {
+  const node = document.createElement(tag);
+  for (const [key, value] of Object.entries(attrs || {})) {
+    if (key === 'className') node.className = value;
+    else if (key === 'text') node.textContent = value == null ? '' : String(value);
+    else if (key.startsWith('on')) node.addEventListener(key.slice(2), value);
+    else if (value !== undefined && value !== null && value !== false) node.setAttribute(key, value === true ? '' : String(value));
+  }
+  for (const child of Array.isArray(children) ? children : [children]) {
+    if (child !== null && child !== undefined) node.append(child instanceof Node ? child : document.createTextNode(String(child)));
+  }
+  return node;
+}
+
+function show(text, kind = '') {
+  message.textContent = text || '';
+  message.className = `message ${kind}`;
+}
+
+function setBusy(value) {
+  busy = value;
+  document.querySelectorAll('button').forEach((button) => { button.disabled = value; });
+  syncReadingFields();
+}
+
+async function action(name, payload = {}) {
+  const response = await fetch('/roost/api/quick', {
+    method: 'POST',
+    credentials: 'same-origin',
+    cache: 'no-store',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      op: 'extensions.ui.action',
+      arg: {
+        id: 'novel-writer',
+        action: 'panel',
+        payload: { op: name, ...payload },
+      },
+      chatId: '',
+    }),
+  });
+  const body = await response.json().catch(() => ({}));
+  if (!response.ok || body.ok === false) throw new Error(body.message || `HTTP ${response.status}`);
+  return body.data ?? body;
+}
+
+async function installSharedFfmpeg() {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 60000);
+  try {
+    const response = await fetch('/roost/api/quick', {
+      method: 'POST',
+      credentials: 'same-origin',
+      cache: 'no-store',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ op: 'sharedDeps.install', arg: { name: 'ffmpeg' } }),
+      signal: controller.signal,
+    });
+    const body = await response.json().catch(() => ({}));
+    if (!response.ok || body.ok !== true) {
+      throw new Error(String(body.message || `共享依赖安装失败（HTTP ${response.status}）`).slice(0, 300));
+    }
+    return body;
+  } catch (error) {
+    if (controller.signal.aborted) throw new Error('共享依赖安装超时，请稍后重试。');
+    throw error;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function refreshDependencyStatus() {
+  const status = await action('status');
+  voiceSources = status.voice || voiceSources;
+  renderStatus({ ...status, voice: voiceSources });
+  return status;
+}
+
+function renderOwnerOptions(selectedId) {
+  ownerSelect.replaceChildren(new Option('选择私人书库', ''));
+  for (const owner of ownerChoices) {
+    ownerSelect.append(new Option(owner.label, owner.id, false, owner.id === selectedId));
+  }
+  ownerSelect.disabled = !ownerChoices.length;
+}
+
+async function guarded(work) {
+  if (busy) return;
+  setBusy(true);
+  try { await work(); }
+  catch (error) { show(error.message || String(error), 'bad'); }
+  finally { setBusy(false); syncReadingFields(); }
+}
+
+function card(label, value, state = '') {
+  return element('div', { className: 'card' }, [
+    element('b', { text: label }),
+    element('div', { className: state, text: value }),
+  ]);
+}
+
+function renderStatus(data) {
+  const model = data.model || {};
+  const voice = data.voice || voiceSources;
+  const values = [
+    ['默认模型', model.configured ? `${model.provider} / ${model.model}` : '未配置', model.configured ? 'ok' : 'bad'],
+    ['官方语音', voice.official?.configured ? '已配置' : '不可用', voice.official?.configured ? 'ok' : 'warn'],
+    ['语音回复扩展', voice.extension?.configured ? `${voice.extension.profiles?.length || 0} 个方案` : '不可用', voice.extension?.configured ? 'ok' : 'warn'],
+    ['FFmpeg', data.ffmpeg ? '可用' : '未安装', data.ffmpeg ? 'ok' : 'bad'],
+    ['任务记录', `${data.stats?.tasks || 0} 个`, ''],
+  ];
+  $('#status').replaceChildren(...values.map((row) => card(...row)));
+  $('#systemGrid').replaceChildren(...values.map((row) => card(...row)));
+}
+
+function renderBookOptions(currentId) {
+  bookSelect.replaceChildren(new Option('选择书籍', ''));
+  for (const book of books) {
+    bookSelect.append(new Option(`《${book.title}》 · ${book.chapterCount}章`, book.id, false, book.id === currentId));
+  }
+  bookSelect.disabled = !books.length;
+}
+
+function fillBook(book) {
+  currentBook = book;
+  $('#currentSummary').textContent = book ? `${book.chapterCount} 章，约 ${book.chars} 字` : '';
+  $('#bookTitle').value = book?.title || '';
+  $('#targetChars').value = book?.settings?.targetChars || 3000;
+  $('#genre').value = book?.settings?.genre || '';
+  $('#core').value = book?.settings?.core || '';
+  $('#world').value = book?.settings?.world || '';
+  $('#style').value = book?.settings?.style || '';
+  $('#avoid').value = book?.settings?.avoid || '';
+  $('#outline').value = (book?.outline || []).join('\n');
+  renderPersonas(book?.personas || []);
+  renderChapters(book?.chapters || []);
+  fillReading(book);
+  hidePersonaEditor();
+  hideChapterEditor();
+}
+
+async function loadBook(bookId, switchBook = false, ownerId = currentOwnerId) {
+  if (!bookId) { fillBook(null); return; }
+  if (switchBook) await action('open', { ownerId, bookId });
+  const data = await action('book', { ownerId, bookId });
+  fillBook(data.book);
+}
+
+function renderPersonas(personas) {
+  const list = $('#personaList');
+  if (!personas.length) {
+    list.replaceChildren(element('div', { className: 'card muted', text: '还没有人设卡。点击“新建人设卡”开始。' }));
+    return;
+  }
+  list.replaceChildren(...personas.map((persona) => {
+    const details = [
+      persona.identity && `身份：${persona.identity}`,
+      persona.goal && `目标：${persona.goal}`,
+      persona.conflict && `冲突：${persona.conflict}`,
+    ].filter(Boolean).join('\n');
+    return element('article', { className: 'card' }, [
+      element('div', { className: 'persona-head' }, [
+        element('b', { text: persona.name + (persona.aliases?.length ? `（${persona.aliases.join('、')}）` : '') }),
+        element('div', { className: 'row' }, [
+          element('button', { type: 'button', text: '编辑', onclick: () => editPersona(persona) }),
+        ]),
+      ]),
+      element('div', { className: 'persona-meta', text: details || '尚未填写身份、目标和冲突' }),
+    ]);
+  }));
+}
+
+function editPersona(persona = {}) {
+  const fields = {
+    personaId: persona.id || '',
+    personaName: persona.name || '',
+    personaAliases: (persona.aliases || []).join('、'),
+    personaIdentity: persona.identity || '',
+    personaSpeech: persona.speech || '',
+    personaAppearance: persona.appearance || '',
+    personaPersonality: persona.personality || '',
+    personaRelationship: persona.relationship || '',
+    personaGoal: persona.goal || '',
+    personaConflict: persona.conflict || '',
+    personaSecret: persona.secret || '',
+    personaArc: persona.arc || '',
+    personaNotes: persona.notes || '',
+  };
+  for (const [id, value] of Object.entries(fields)) $(`#${id}`).value = value;
+  $('#personaEditorTitle').textContent = persona.id ? '编辑人设卡' : '新建人设卡';
+  $('#deletePersona').classList.toggle('hidden', !persona.id);
+  $('#personaEditor').classList.remove('hidden');
+  $('#personaEditor').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function hidePersonaEditor() {
+  $('#personaEditor').classList.add('hidden');
+  $('#personaForm').reset();
+}
+
+function renderChapters(chapters) {
+  const list = $('#chapterList');
+  if (!chapters.length) {
+    list.replaceChildren(element('p', { className: 'muted', text: '这本书还没有章节。可以回到 QQ 发送 /小说 续写。' }));
+    return;
+  }
+  list.replaceChildren(...chapters.map((chapter) => element('div', { className: 'chapter-row' }, [
+    element('b', { text: `第${chapter.no}章` }),
+    element('span', { text: chapter.title }),
+    element('span', { className: 'optional', text: `${chapter.chars} 字` }),
+    element('span', { className: 'optional muted', text: `v${chapter.currentVersion} / ${chapter.versionCount}` }),
+    element('button', { type: 'button', text: '编辑正文', onclick: () => openChapter(chapter.no) }),
+  ])));
+}
+
+async function openChapter(chapterNo) {
+  await guarded(async () => {
+    const data = await action('chapter', { ownerId: currentOwnerId, bookId: currentBook?.id, chapterNo });
+    $('#chapterNo').value = data.chapterNo;
+    $('#chapterExpectedVersion').value = data.currentVersion;
+    $('#chapterTitle').value = data.title;
+    $('#chapterBody').value = data.body;
+    $('#chapterEditorTitle').textContent = `编辑第 ${data.chapterNo} 章`;
+    $('#chapterVersion').textContent = `当前 v${data.currentVersion}`;
+    $('#chapterEditor').classList.remove('hidden');
+    $('#chapterEditor').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+}
+
+function hideChapterEditor() {
+  $('#chapterEditor').classList.add('hidden');
+  $('#chapterForm').reset();
+}
+
+function numberValue(value, fallback) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : fallback;
+}
+
+function readingSourceLabel(source) {
+  if (source === 'official') return '官方语音';
+  if (source === 'extension') return '语音回复扩展';
+  return '未设置';
+}
+
+function fillReading(book) {
+  const voice = book?.voice || {};
+  const speed = numberValue(voice.speed, 1);
+  savedReadingVoice = {
+    source: voice.source || '',
+    profileId: voice.profileId || '',
+    voice: voice.voice || '',
+    speed,
+  };
+  $('#readingSource').value = savedReadingVoice.source;
+  $('#readingSpeed').value = speed;
+  $('#readingOfficialVoice').value = savedReadingVoice.voice;
+  const profiles = voiceSources.extension?.profiles || [];
+  $('#readingProfile').replaceChildren(new Option('请选择', ''));
+  for (const profile of profiles) $('#readingProfile').append(new Option(profile.name, profile.id));
+  $('#readingProfile').value = savedReadingVoice.profileId;
+  $('#autoRead').checked = book?.autoRead === true;
+  renderReadingInfo(book);
+  $('#readingAvailability').textContent = [
+    `官方语音：${voiceSources.official?.configured ? '可用' : voiceSources.official?.available ? '已启用但缺少配置' : '不可用'}`,
+    `语音回复扩展：${voiceSources.extension?.configured ? `可用，${profiles.length} 个方案` : '不可用'}`,
+    voiceSources.error ? `检查错误：${voiceSources.error}` : '',
+  ].filter(Boolean).join('；');
+  syncReadingFields();
+}
+
+function renderReadingInfo(book) {
+  const official = voiceSources.official || {};
+  const voice = savedReadingVoice;
+  $('#readingSaved').textContent = [
+    `本书已保存：来源 ${readingSourceLabel(voice.source)}`,
+    `音色 ${voice.voice ? `“${voice.voice}”` : '（未保存）'}`,
+    `音色方案 ${voice.profileId || '（未保存）'}`,
+    `语速 ${voice.speed}`,
+    `自动朗读 ${book?.autoRead === true ? '开' : '关'}`,
+  ].join('；');
+
+  const savedGlobalSpeed = numberValue(official.savedSpeed,
+    numberValue(official.globalSpeed, numberValue(official.speed, 1)));
+  const effectiveSpeed = numberValue(official.effectiveSpeed, numberValue(official.speed, 1));
+  const state = [
+    `当前全局官方语音：${official.configured ? '可用' : official.available ? '已启用但缺少配置' : '不可用'}${official.provider ? `（${official.provider}）` : ''}`,
+    `当前全局音色：${official.voice || '未设置'}`,
+    `当前实际生效语速：${effectiveSpeed}`,
+    `已保存全局语速：${savedGlobalSpeed}`,
+  ];
+  if (official.provider === 'mimo') {
+    state.push(`MiMo 固定原速：已保存全局语速 ${savedGlobalSpeed}，实际按 ${effectiveSpeed} 合成。`);
+  }
+  if (official.engineChecked === false) state.push('尚未实际探测语音引擎健康状态。');
+  $('#readingOfficialState').textContent = state.join('\n');
+
+  const missing = Array.isArray(official.missing) ? official.missing.filter(Boolean) : [];
+  $('#readingMissing').textContent = missing.length
+    ? `缺少配置：${missing.join('、')}`
+    : official.configured ? '官方语音配置完整。' : '官方语音尚未配置完整，请先在全局语音设置中检查。';
+
+  const limitations = Array.isArray(official.limitations) ? official.limitations.filter(Boolean) : [];
+  $('#readingLimitations').textContent = limitations.length
+    ? limitations.join('\n')
+    : '当前没有额外的官方语音限制说明。';
+}
+
+function syncReadingFields() {
+  const source = $('#readingSource').value;
+  const official = voiceSources.official || {};
+  const apply = $('#readingApplyGlobal');
+  const officialMode = source === 'official';
+  $('#readingSource').disabled = busy;
+  $('#autoRead').disabled = busy;
+  $('#readingProfile').disabled = busy || source !== 'extension';
+  $('#readingOfficialVoice').disabled = busy || !officialMode || official.supportsVoiceOverride !== true;
+  $('#readingSpeed').disabled = busy
+    || (source === 'extension' ? false : officialMode ? official.supportsSpeedOverride !== true : true);
+  apply.classList.toggle('hidden', !officialMode);
+  apply.disabled = busy || !officialMode || official.configured !== true;
+}
+
+function renderTasks(tasks) {
+  const list = $('#taskList');
+  if (!tasks.length) {
+    list.replaceChildren(element('p', { className: 'muted', text: '还没有任务记录。' }));
+    return;
+  }
+  list.replaceChildren(...tasks.map((task) => element('div', { className: 'task-row' }, [
+    element('div', {}, [
+      element('b', { text: `${task.kind} · ${task.id}` }),
+      element('div', { className: 'mono muted', text: task.stage || '' }),
+    ]),
+    element('span', { className: task.status === 'error' ? 'bad' : task.status === 'done' ? 'ok' : 'warn', text: task.status }),
+    element('span', { text: task.progress?.total ? `${task.progress.done || 0}/${task.progress.total}` : '' }),
+    element('div', { className: 'task-note muted', text: task.notice || task.error || '' }),
+  ])));
+}
+
+async function refreshAll() {
+  const [statusData, booksData] = await Promise.all([action('status'), action('books')]);
+  voiceSources = booksData.voice || statusData.voice;
+  renderStatus({ ...statusData, voice: voiceSources });
+  ownerChoices = booksData.owners || [];
+  currentOwnerId = booksData.selectedOwnerId || ownerChoices[0]?.id || '';
+  const selectedOwner = ownerChoices.find((owner) => owner.id === currentOwnerId);
+  books = selectedOwner?.books || booksData.books || [];
+  renderOwnerOptions(currentOwnerId);
+  renderBookOptions(booksData.currentBookId || selectedOwner?.currentBookId || '');
+  if (booksData.currentBookId || selectedOwner?.currentBookId) {
+    await loadBook(booksData.currentBookId || selectedOwner.currentBookId, false, currentOwnerId);
+  }
+  else fillBook(null);
+  const taskData = currentOwnerId ? await action('tasks', { ownerId: currentOwnerId }) : { tasks: [] };
+  renderTasks(taskData.tasks || []);
+  show('已刷新。', 'ok');
+}
+
+document.querySelectorAll('.tabs button').forEach((button) => {
+  button.addEventListener('click', () => {
+    document.querySelectorAll('.tabs button').forEach((item) => item.classList.toggle('active', item === button));
+    document.querySelectorAll('section[data-panel]').forEach((panel) => {
+      panel.classList.toggle('hidden', panel.dataset.panel !== button.dataset.view);
+    });
+  });
+});
+
+ownerSelect.addEventListener('change', () => guarded(async () => {
+  currentOwnerId = ownerSelect.value;
+  const selected = ownerChoices.find((owner) => owner.id === currentOwnerId);
+  books = selected?.books || [];
+  renderBookOptions(selected?.currentBookId || '');
+  await loadBook(selected?.currentBookId || '', false, currentOwnerId);
+  const taskData = await action('tasks', { ownerId: currentOwnerId });
+  renderTasks(taskData.tasks || []);
+  show('已切换私人书库。', 'ok');
+}));
+
+bookSelect.addEventListener('change', () => guarded(async () => {
+  await loadBook(bookSelect.value, true, currentOwnerId);
+  show('已切换当前书籍。', 'ok');
+}));
+
+$('#refresh').addEventListener('click', () => guarded(refreshAll));
+$('#recover').addEventListener('click', () => guarded(async () => {
+  const data = await action('recover');
+  show(data.message || '已恢复', 'ok');
+}));
+$('#deps').addEventListener('click', () => {
+  if (!confirm('通过宿主共享依赖安装 FFmpeg？TXT 功能不依赖它，可以先继续使用。')) return;
+  guarded(async () => {
+    const data = await installSharedFfmpeg();
+    show(data.message || '共享 FFmpeg 已就绪', 'ok');
+    await refreshDependencyStatus();
+  });
+});
+
+$('#bookForm').addEventListener('submit', (event) => {
+  event.preventDefault();
+  if (!currentBook) return show('还没有可编辑的书籍。', 'bad');
+  guarded(async () => {
+    const data = await action('saveBook', {
+      ownerId: currentOwnerId,
+      bookId: currentBook.id,
+      title: $('#bookTitle').value,
+      settings: {
+        core: $('#core').value,
+        genre: $('#genre').value,
+        world: $('#world').value,
+        style: $('#style').value,
+        avoid: $('#avoid').value,
+        targetChars: Number($('#targetChars').value),
+      },
+      outline: $('#outline').value.split(/\r?\n/).map((line) => line.trim()).filter(Boolean),
+    });
+    fillBook(data.book);
+    await refreshBookOptionsOnly();
+    show('书籍资料已保存。', 'ok');
+  });
+});
+
+$('#deleteBook').addEventListener('click', () => {
+  if (!currentBook) return;
+  const answer = prompt(`删除《${currentBook.title}》后书籍与全部章节版本都会移除。请输入完整书名确认：`);
+  if (answer === null) return;
+  guarded(async () => {
+    const data = await action('deleteBook', { ownerId: currentOwnerId, bookId: currentBook.id, confirmTitle: answer });
+    show(data.message || '书籍已删除', 'ok');
+    await refreshAll();
+  });
+});
+
+$('#newPersona').addEventListener('click', () => editPersona());
+$('#generatePersona').addEventListener('click', () => {
+  if (!currentBook) return show('还没有可编辑的书籍。', 'bad');
+  const hint = prompt('希望新增什么角色？可以留空，由模型依据全书设定设计。');
+  if (hint === null) return;
+  guarded(async () => {
+    const data = await action('generatePersona', {
+      ownerId: currentOwnerId,
+      bookId: currentBook.id,
+      hint,
+    });
+    editPersona(data.persona);
+    show('候选已生成。检查字段后点击“保存人设卡”。', 'ok');
+  });
+});
+$('#cancelPersona').addEventListener('click', hidePersonaEditor);
+$('#personaForm').addEventListener('submit', (event) => {
+  event.preventDefault();
+  if (!currentBook) return show('还没有可编辑的书籍。', 'bad');
+  guarded(async () => {
+    const data = await action('savePersona', {
+      ownerId: currentOwnerId,
+      bookId: currentBook.id,
+      persona: {
+        id: $('#personaId').value,
+        name: $('#personaName').value,
+        aliases: $('#personaAliases').value,
+        identity: $('#personaIdentity').value,
+        speech: $('#personaSpeech').value,
+        appearance: $('#personaAppearance').value,
+        personality: $('#personaPersonality').value,
+        relationship: $('#personaRelationship').value,
+        goal: $('#personaGoal').value,
+        conflict: $('#personaConflict').value,
+        secret: $('#personaSecret').value,
+        arc: $('#personaArc').value,
+        notes: $('#personaNotes').value,
+      },
+    });
+    currentBook.personas = data.personas;
+    renderPersonas(data.personas);
+    hidePersonaEditor();
+    show(data.message || '人设卡已保存。', 'ok');
+  });
+});
+$('#deletePersona').addEventListener('click', () => {
+  const id = $('#personaId').value;
+  if (!id || !confirm('确认删除这张人设卡？')) return;
+  guarded(async () => {
+    const data = await action('deletePersona', { ownerId: currentOwnerId, bookId: currentBook.id, personaId: id });
+    currentBook.personas = data.personas;
+    renderPersonas(data.personas);
+    hidePersonaEditor();
+    show(data.message || '人设卡已删除。', 'ok');
+  });
+});
+
+$('#cancelChapter').addEventListener('click', hideChapterEditor);
+$('#chapterForm').addEventListener('submit', (event) => {
+  event.preventDefault();
+  if (!currentBook) return;
+  guarded(async () => {
+    const data = await action('saveChapter', {
+      ownerId: currentOwnerId,
+      bookId: currentBook.id,
+      chapterNo: Number($('#chapterNo').value),
+      expectedVersion: Number($('#chapterExpectedVersion').value),
+      title: $('#chapterTitle').value,
+      body: $('#chapterBody').value,
+    });
+    await loadBook(currentBook.id);
+    $('#chapterNo').value = data.chapter.chapterNo;
+    $('#chapterExpectedVersion').value = data.chapter.currentVersion;
+    $('#chapterTitle').value = data.chapter.title;
+    $('#chapterBody').value = data.chapter.body;
+    $('#chapterVersion').textContent = `当前 v${data.chapter.currentVersion}`;
+    $('#chapterEditor').classList.remove('hidden');
+    show(data.message || '章节已保存。', 'ok');
+  });
+});
+
+function readingVoicePayload(useCurrentGlobal) {
+  const source = $('#readingSource').value;
+  if (useCurrentGlobal) {
+    const official = voiceSources.official || {};
+    return {
+      source: 'official',
+      profileId: '',
+      voice: official.voice || '',
+      speed: numberValue(official.effectiveSpeed, numberValue(official.speed, 1)),
+    };
+  }
+  if (source === 'official') {
+    return {
+      source,
+      profileId: '',
+      voice: $('#readingOfficialVoice').value,
+      speed: numberValue($('#readingSpeed').value, savedReadingVoice.speed),
+    };
+  }
+  if (source === 'extension') {
+    return {
+      source,
+      profileId: $('#readingProfile').value,
+      voice: '',
+      speed: numberValue($('#readingSpeed').value, savedReadingVoice.speed),
+    };
+  }
+  return {
+    source: '',
+    profileId: '',
+    voice: '',
+    speed: numberValue($('#readingSpeed').value, savedReadingVoice.speed),
+  };
+}
+
+function submitReading(useCurrentGlobal) {
+  if (!currentBook) return show('还没有可编辑的书籍。', 'bad');
+  if (busy) return;
+  guarded(async () => {
+    const voice = readingVoicePayload(useCurrentGlobal);
+    const autoRead = $('#autoRead').checked;
+    const data = await action('setReading', {
+      ownerId: currentOwnerId,
+      bookId: currentBook.id,
+      autoRead,
+      voice,
+      useCurrentGlobal,
+    });
+    const resultVoice = data.voice && typeof data.voice === 'object' ? data.voice : voice;
+    currentBook.voice = {
+      source: resultVoice.source || '',
+      profileId: resultVoice.profileId || '',
+      voice: resultVoice.voice || '',
+      speed: numberValue(resultVoice.speed, voice.speed),
+    };
+    currentBook.autoRead = typeof data.autoRead === 'boolean' ? data.autoRead : autoRead;
+    fillReading(currentBook);
+    show(data.message || '朗读设置已保存。', 'ok');
+  });
+}
+
+$('#readingSource').addEventListener('change', syncReadingFields);
+$('#readingForm').addEventListener('submit', (event) => {
+  event.preventDefault();
+  submitReading(false);
+});
+$('#readingApplyGlobal').addEventListener('click', () => submitReading(true));
+
+async function refreshBookOptionsOnly() {
+  const data = await action('books', { ownerId: currentOwnerId });
+  ownerChoices = data.owners || ownerChoices;
+  const owner = ownerChoices.find((item) => item.id === currentOwnerId);
+  books = owner?.books || data.books || [];
+  renderBookOptions(currentBook?.id);
+}
+
+guarded(refreshAll);
+</script>
+</html>

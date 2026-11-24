@@ -1,0 +1,71 @@
+{
+  "api": 1,
+  "kind": "dsh-extension",
+  "id": "novel-writer",
+  "serverName": "novel-writer",
+  "name": "小说/人设卡创作",
+  "description": "个人小说书库、人设卡、章节版本、后台续写、TXT 交付、长文 MP3 朗读与任务恢复",
+  "version": "1.2.0",
+  "transport": "stdio",
+  "command": "node",
+  "args": [
+    "server.mjs"
+  ],
+  "scopes": [
+    "agent:write",
+    "say:write",
+    "state:read",
+    "host:maintenance"
+  ],
+  "config": {
+    "maxContextChars": {
+      "type": "number",
+      "label": "写作上下文预算（字符）",
+      "default": 18000,
+      "min": 6000,
+      "max": 24000,
+      "integer": true,
+      "hint": "包含固定设定、摘要、状态和最近两章；固定设定过大时会要求先整理。"
+    },
+    "defaultChapterChars": {
+      "type": "number",
+      "label": "默认单章字数",
+      "default": 3000,
+      "min": 1000,
+      "max": 5000,
+      "integer": true
+    },
+    "audioPartLimitMiB": {
+      "type": "number",
+      "label": "单个音频文件上限（MiB）",
+      "default": 16,
+      "min": 8,
+      "max": 16,
+      "integer": true
+    }
+  },
+  "usage": "私人书库只能通过原生插件 /小说 的已核验 QQ 消息入口，或本机已认证管理页访问。MCP 工具只提供帮助和能力检查，不能读取、修改或导出书籍。",
+  "ui": {
+    "nav": {
+      "label": "小说/人设卡创作",
+      "group": "express"
+    },
+    "page": "page.html",
+    "runtime": "inprocess",
+    "entry": "actions-v1.mjs",
+    "actions": [
+      {
+        "id": "qq",
+        "label": "QQ 小说入口"
+      },
+      {
+        "id": "panel",
+        "label": "小说管理"
+      }
+    ]
+  },
+  "tags": [
+    "人设",
+    "AI"
+  ]
+}
