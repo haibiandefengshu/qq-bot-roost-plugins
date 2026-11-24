@@ -49,8 +49,10 @@
 
 ```powershell
 node --test test/*.mjs
-node server.mjs --help
 ```
+
+`server.mjs` 是由宿主启动的 MCP/stdio 入口，没有 `--help` 参数；直接运行会挂起等待 stdin。
+手动排查请用 `node --test test/*.mjs`，或看宿主面板的扩展诊断信息。
 
 模型测试属于模拟接口测试；真实模型、两种真实 TTS 后端和 QQ 客户端播放
 必须在对应真机环境中另记验证结果。

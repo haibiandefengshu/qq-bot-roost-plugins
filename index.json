@@ -417,17 +417,22 @@
       "name": "小说对话",
       "version": "1.1.0",
       "description": "注册统一 /小说 命令，通过本机认证传输传递真实消息身份并接收小说扩展生成的 TXT 与 MP3",
-      "tags": [],
+      "tags": [
+        "对话",
+        "工具"
+      ],
       "runtime": "node",
       "path": "plugins/novel-chat",
       "sha256": "f55627437fe5f204b5673f0eaa625d3af1e16ef1abcfd0365578fd70f22279af",
-      "sha256_v2": "f8c52bdb09cb32c68865437e8fc76e32233734539620661c054b4c52158472ec"
+      "sha256_v2": "f8c52bdb09cb32c68865437e8fc76e32233734539620661c054b4c52158472ec",
+      "category": "AI 对话"
     },
     {
       "id": "novel-writer",
       "name": "小说/人设卡创作",
       "version": "1.2.0",
       "description": "个人小说书库、人设卡、章节版本、后台续写、TXT 交付、长文 MP3 朗读与任务恢复",
+      "author": "haibiandefengshu",
       "tags": [
         "人设",
         "AI"
@@ -445,8 +450,9 @@
         "runtime": "inprocess"
       },
       "path": "plugins/novel-writer",
-      "sha256": "0d06676f119e8a8fa23fee22828ad89a948200762315bf8cb7e2e3d77eac2f5d",
-      "sha256_v2": "e9d33e50d07224aff49208eebad6fd7b1d63c009630e3183c1ff100c0419a8ef"
+      "sha256": "850464265f963dfc483876f8f7189ec97e75d8b1f72bcd636906d99535220a34",
+      "sha256_v2": "177469f63d815ec84f1c110e28bdbc7c1466d07a4b98dace18a0bf996cd48340",
+      "category": "人格与人设"
     },
     {
       "id": "persona-grow",
