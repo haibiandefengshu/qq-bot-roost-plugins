@@ -450,8 +450,8 @@
         "runtime": "inprocess"
       },
       "path": "plugins/novel-writer",
-      "sha256": "850464265f963dfc483876f8f7189ec97e75d8b1f72bcd636906d99535220a34",
-      "sha256_v2": "177469f63d815ec84f1c110e28bdbc7c1466d07a4b98dace18a0bf996cd48340",
+      "sha256": "31514c1e25f9fd3ce489e041d606e82d4b52c49f90000f3bf841a67e3c13b0ce",
+      "sha256_v2": "e9d33e50d07224aff49208eebad6fd7b1d63c009630e3183c1ff100c0419a8ef",
       "category": "人格与人设"
     },
     {
