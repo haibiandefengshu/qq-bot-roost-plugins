@@ -154,7 +154,7 @@ test('非法参数与过量MCP请求都不会进入合成', async () => {
   assert.equal(c.result.isError, true); assert.equal(calls, 2); resolveRun(); await Promise.all([a, b]);
 });
 test('配置和密钥活引用：面板配置更新/清空下一次动作生效', async t => {
-  const { createActions } = await import('../actions-v4.mjs');
+  const { createActions } = await import('../actions-v5.mjs');
   const config = { enabled: true, refAudio: 'sample.wav' }, secrets = {};
   const actions = createActions({ config, secrets, env: { VOICE_REPLY_DATA_DIR: temporary(t) } });
   assert.equal((await actions.status()).data.missing.includes('参考音频'), false);

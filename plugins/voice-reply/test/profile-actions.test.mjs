@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { createActions } from '../actions-v4.mjs';
+import { createActions } from '../actions-v5.mjs';
 import { MANIFEST } from '../lib/config.mjs';
 import { temporary } from './helpers.mjs';
 

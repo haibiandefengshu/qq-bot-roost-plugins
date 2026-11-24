@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 const version = JSON.parse(readFileSync(new URL('./plugin.json', import.meta.url), 'utf8')).version;
 const { createService } = await import(`./lib/service.mjs?v=${version}`);
-const { currentConfig, dataDir, ROOT } = await import(`./lib/config.mjs?v=${version}`);
+const { currentConfig, dataDir, ROOT, normalizeConfig } = await import(`./lib/config.mjs?v=${version}`);
 const { createProfiles } = await import(`./lib/profiles.mjs?v=${version}`);
 const { createLauncher } = await import(`./lib/launcher.mjs?v=${version}`);
 
@@ -11,8 +11,8 @@ export function createActions({ config = {}, secrets = {}, env = {}, root = ROOT
   const service = createService({ getConfig, dir });
   const profiles = createProfiles({ root, dir });
   const launcher = createLauncher({ getConfig, dir });
-  const wrap = fn => async (payload = {}) => {
-    try { return { ok: true, data: await fn(payload) }; }
+  const wrap = fn => async (payload = {}, invocation = null) => {
+    try { return { ok: true, data: await fn(payload, invocation) }; }
     catch (e) { return { ok: false, message: String(e.message || '动作失败') }; }
   };
   return {
@@ -34,6 +34,17 @@ export function createActions({ config = {}, secrets = {}, env = {}, root = ROOT
       if (payload?.op === 'start') return launcher.start();
       if (payload?.op === 'stop') return launcher.stop();
       throw new Error('未知服务操作');
+    }),
+    /**
+     * Host-internal long-form adapter. It is intentionally absent from ui.actions:
+     * the only caller is novel-writer's restricted host runtime.
+     */
+    longForm: wrap(async payload => {
+      if (!payload || typeof payload !== 'object' || Array.isArray(payload)) throw new Error('长文合成参数需要对象');
+      const unknown = Object.keys(payload).filter(key => !['text', 'values', 'profileId'].includes(key));
+      if (unknown.length) throw new Error('长文合成参数包含未知字段');
+      const values = normalizeConfig(payload.values, '');
+      return service.runLongForm(String(payload.text ?? ''), values);
     }),
   };
 }
