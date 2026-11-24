@@ -413,6 +413,17 @@
       "verified": "official"
     },
     {
+      "id": "novel-chat",
+      "name": "小说对话",
+      "version": "1.1.0",
+      "description": "注册统一 /小说 命令，通过本机认证传输传递真实消息身份并接收小说扩展生成的 TXT 与 MP3",
+      "tags": [],
+      "runtime": "node",
+      "path": "plugins/novel-chat",
+      "sha256": "f55627437fe5f204b5673f0eaa625d3af1e16ef1abcfd0365578fd70f22279af",
+      "sha256_v2": "f8c52bdb09cb32c68865437e8fc76e32233734539620661c054b4c52158472ec"
+    },
+    {
       "id": "persona-grow",
       "name": "人设生长",
       "version": "0.5.0",
