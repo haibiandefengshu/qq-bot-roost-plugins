@@ -2,7 +2,7 @@
   "schema": 4,
   "repo": "roost-qq/qq-bot-roost-plugins",
   "branch": "main",
-  "updated": "2026-11-23",
+  "updated": "2026-11-24",
   "plugins": [
     {
       "id": "ai-native",
@@ -585,18 +585,17 @@
     {
       "id": "voice-reply",
       "name": "语音回复",
-      "version": "1.1.6",
+      "version": "1.1.8",
       "description": "角色语音合成、台词库与试听；依赖 GPT-SoVITS v2 服务和角色模型，由聊天工具触发",
       "tags": [
-        "AI",
         "工具"
       ],
       "kind": "dsh-extension",
       "runtime": "mcp",
       "scopes": [],
       "path": "plugins/voice-reply",
-      "sha256": "a366825d4965b378b3d4690241f6a601546e9a5ef8a75a69da06fbb9e2850a0a",
-      "sha256_v2": "1e7cb362a38b2fccdeb56b38371b206e927469310cfbc25a288608bc4cc49107",
+      "sha256": "af842dfa963ef1092ac22b0b9ae2d6ee3f1be6c65cb15928dde0c2d184eda0c0",
+      "sha256_v2": "916855f03c807f526750a18195f9abcbad0931733d36af29a3d663253f1ad371",
       "ui": {
         "page": "page.html",
         "runtime": "inprocess"

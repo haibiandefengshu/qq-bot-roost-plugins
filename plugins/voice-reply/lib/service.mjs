@@ -7,7 +7,7 @@ const { currentConfig, dataDir, missingSetup } = await import(`./config.mjs?v=${
 const { ensureDir, atomicJson, readJson, saveJob, getJob, withLock, prune, cooldownPath } = await import(`./store.mjs?v=${V}`);
 const { composeSpeech, BUILTIN_LINES, cleanText } = await import(`./speech.mjs?v=${V}`);
 const { createClient } = await import(`./client.mjs?v=${V}`);
-const { encodeVoice } = await import(`./audio.mjs?v=${V}`);
+const { encodeVoice, inspectWav } = await import(`./audio.mjs?v=${V}`);
 
 function checkArgs(args) {
   if (!args || typeof args !== 'object' || Array.isArray(args)) throw new Error('参数需要对象');
@@ -19,8 +19,11 @@ export function publicJob(job) {
   const { silkFile, wavFile, ...out } = job;
   return out;
 }
-export function createService({ getConfig = currentConfig, dir = dataDir(), fetchImpl = fetch, codec, random = Math.random } = {}) {
-  const client = createClient(fetchImpl);
+export function createService({
+  getConfig = currentConfig, dir = dataDir(), fetchImpl = fetch, codec,
+  random = Math.random, clientFactory = createClient,
+} = {}) {
+  const client = clientFactory(fetchImpl);
   const pending = new Set();
   function status() {
     const c = getConfig();
@@ -114,5 +117,33 @@ export function createService({ getConfig = currentConfig, dir = dataDir(), fetc
     run(args, { preview: true, id }).catch(() => {}).finally(() => pending.delete(id));
     return { jobId: id };
   }
-  return { status, job, audio, run, startPreview, probe: () => client.probe(getConfig()) };
+  /**
+   * One long-form segment for novel-writer. This path never calls composeSpeech:
+   * no truncation, translation, line extraction, SILK encoding, or voice marker.
+   * The same synthesis.lock covers weight switching and synthesis.
+   */
+  async function runLongForm(text, values, { timeoutMs = 180_000 } = {}) {
+    const value = String(text ?? '').trim();
+    if (!value) throw new Error('长文合成分段为空');
+    if (Array.from(value).length > 2000) throw new Error('长文合成分段超过 2000 字');
+    if (!values || typeof values !== 'object' || Array.isArray(values)) throw new Error('缺少音色配置快照');
+    const lack = missingSetup(values);
+    if (lack.length) throw new Error(`音色配置缺少：${lack.join('、')}`);
+    const signal = AbortSignal.timeout(Math.max(5_000, Number(timeoutMs) || 180_000));
+    return await withLock(dir, signal, async () => {
+      signal.throwIfAborted();
+      await client.weights(values, signal);
+      const wav = await client.wav(values, { text: value, lang: values.textLang }, signal);
+      signal.throwIfAborted();
+      const info = inspectWav(wav);
+      return {
+        wavBase64: Buffer.from(wav).toString('base64'),
+        contentType: 'audio/wav',
+        bytes: wav.length,
+        durationSec: info.durationSec,
+        sampleRate: info.fmt.sampleRate,
+      };
+    });
+  }
+  return { status, job, audio, run, startPreview, runLongForm, probe: () => client.probe(getConfig()) };
 }

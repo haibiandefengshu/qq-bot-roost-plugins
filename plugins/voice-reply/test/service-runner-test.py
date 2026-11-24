@@ -308,12 +308,9 @@ class MiddlewareTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(any((b"x-voice-semantic-cache", b"miss") in msg.get("headers", []) for msg in sent))
 
     async def test_actual_fastapi_routes_metadata_json_and_original_get_share_cache(self):
-        try:
-            from fastapi import FastAPI
-            from fastapi.responses import Response
-            import httpx
-        except ImportError as error:
-            self.skipTest(f"GPT-SoVITS runtime provides fastapi/httpx; not installed here: {error}")
+        from fastapi import FastAPI
+        from fastapi.responses import Response
+        import httpx
         pipeline = FakeTTS()
         app = FastAPI()
         async def handle(req):

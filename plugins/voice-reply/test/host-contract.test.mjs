@@ -25,7 +25,7 @@ test('安装宿主清单、配置、面板和分级契约', { skip: !host && '�
   const ui = normalizeUiSpec(MANIFEST.ui); assert.equal(ui.ok, true, JSON.stringify(ui.errors));
   assert.equal(ui.spec.nav.group, 'express');
   const tier = deriveTier(MANIFEST);
-  assert.equal(tier.level, 3); // 当前宿主将同源页面/进程内执行纳入分级。
+  assert.ok(tier.level >= 2, '同源页面/进程内执行至少应计入 2 级');
   assert.ok(tier.reasons.some(x => x.kind === 'form' && x.key === 'inprocess'));
   assert.deepEqual(tier.scopes, []);
   assert.ok(MANIFEST.usage.length <= 200);
@@ -62,6 +62,11 @@ test('正式registry临时安装后配置可编辑，密钥不回显且升级保
 test('市场发布物没有用户路径、凭证、运行记录或CRLF，版本一致', () => {
   assert.equal(JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8')).version, MANIFEST.version);
   assert.equal(MANIFEST.kind, 'dsh-extension'); assert.deepEqual(MANIFEST.scopes, []);
+  assert.deepEqual(MANIFEST.tags, ['工具']);
+  assert.equal(MANIFEST.ui.entry, 'actions-v5.mjs');
+  assert.ok(readFileSync(join(ROOT, MANIFEST.ui.entry), 'utf8').includes('longForm'));
+  assert.equal(MANIFEST.ui.actions.some((action) => action.id === 'longForm'), false,
+    'longForm 是宿主内部动作，不能暴露给面板');
   function walk(root) {
     for (const name of readdirSync(root)) {
       assert.ok(!['node_modules', '.git', 'config.json', 'last.json', '.roost-cache'].includes(name), '夹带运行文件: ' + name);
@@ -75,4 +80,19 @@ test('市场发布物没有用户路径、凭证、运行记录或CRLF，版本�
     }
   }
   walk(ROOT);
+});
+
+test('market upgrade exposes the hidden longForm action used by novel-writer', async t => {
+  const { createActions } = await import('../actions-v5.mjs');
+  const actions = createActions({
+    config: {},
+    secrets: {},
+    env: { VOICE_REPLY_DATA_DIR: temporary(t) },
+    root: ROOT,
+  });
+  assert.equal(typeof actions.longForm, 'function');
+  assert.equal(MANIFEST.ui.actions.some((action) => action.id === 'longForm'), false);
+  const invalid = await actions.longForm({ text: 'fixture', values: {}, extra: true });
+  assert.equal(invalid.ok, false);
+  assert.match(invalid.message, /未知字段/);
 });

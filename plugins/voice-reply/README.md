@@ -1,6 +1,6 @@
 # 语音回复 · Roost 扩展
 
-版本 **1.1.6**。把原 `voice-reply` 框架插件的角色语音合成迁入 **Roost 面板「扩展」**，管理页面位于 **表达 → 语音回复**。
+版本 **1.1.8**。把原 `voice-reply` 框架插件的角色语音合成迁入 **Roost 面板「扩展」**，管理页面位于 **表达 → 语音回复**。
 
 本包属于 Roost 扩展市场，清单使用该市场约定的 `kind: "dsh-extension"`；不是安装到 DSH 主程序插件管理器的 Cordis bundle。发布目录是 `plugins/voice-reply/`。
 
@@ -144,9 +144,9 @@ node --test test/*.test.mjs
 DSH_ROOST_DIR=/path/to/dsh-roost node --test test/*.test.mjs
 ```
 
-本轮在上述已安装宿主上运行：**79 项 Node 检查通过、0 失败、0 跳过**，另有 **15 项 Python 语义缓存/适配器检查通过**，包含两个真实 MCP 子进程并发请求的锁验证，以及在临时数据根通过宿主正式 registry 安装、配置读写、密钥遮蔽和升级保留设置的检查。未指定 `DSH_ROOST_DIR` 时，依赖宿主的三项测试会明确跳过；不是假装通过。测试使用临时目录与本机临时 HTTP 服务，WAV→SILK 测试使用包内真实 WASM 编解码器。出站执行器测试使用真实宿主模块与假 QQ 通道，不向真人发消息。
+本轮在上述已安装宿主上运行：**81 项 Node 检查通过、0 失败、0 跳过**，另有 **15 项 Python 语义缓存/适配器检查通过**，包含两个真实 MCP 子进程并发请求的锁验证，以及在临时数据根通过宿主正式 registry 安装、配置读写、密钥遮蔽和升级保留设置的检查。1.1.8 新增的两项覆盖市场版本必须带 `longForm`（小说朗读用的宿主内部动作）且不得暴露到面板。未指定 `DSH_ROOST_DIR` 时，依赖宿主的三项测试会明确跳过；不是假装通过。测试使用临时目录与本机临时 HTTP 服务，WAV→SILK 测试使用包内真实 WASM 编解码器。出站执行器测试使用真实宿主模块与假 QQ 通道，不向真人发消息。
 
-适配器的独立 Python 测试使用 GPT-SoVITS 自带 Python 环境运行 `PYTHON -B test/service-runner-test.py`，需要该环境已有的 NumPy、FastAPI/Starlette；不加载真实 GPU 模型。覆盖语义缓存命中/失效、模型重载、设备回放、失败不污染、缓存界限、请求串行与启动参数。没有 FastAPI/httpx 的普通 Python 里，真实 FastAPI 路由那条会**显式跳过**而不是报错失败（本轮该环境为 14 通过 + 1 跳过；GPT-SoVITS 自带环境内 15 项全部通过）。
+适配器的独立 Python 测试使用 GPT-SoVITS 自带 Python 环境运行 `PYTHON -B test/service-runner-test.py`，需要该环境已有的 NumPy、FastAPI/Starlette；不加载真实 GPU 模型。覆盖语义缓存命中/失效、模型重载、设备回放、失败不污染、缓存界限、请求串行与启动参数。
 
 重点检查：
 
@@ -164,13 +164,23 @@ DSH_ROOST_DIR=/path/to/dsh-roost node --test test/*.test.mjs
 
 2026-11-21 1.1.6 真机复核：已安装扩展对受管进程执行 `service/stop`，PID 22272 退出、9880 端口随即无监听，返回 `stopped` 且 `canStop=false`；随后 `service/start` 生成新进程 29396 并进入就绪。关闭前用进程实际命令行与 Python 路径核对归属，端口或脚本不符时保留进程并报错。当前 GUI 提供的页面与安装目录中的 `page.html` 加宿主桥接垫片逐字节一致。原两条方案（真白、中文）在升级后原 ID 与 14 项内容均未改动。
 
+1.1.7 为小说朗读增加宿主内部的长文文件合成入口：直接复用音色方案快照，
+在与普通语音相同的合成锁内切换权重并返回完整 WAV，不截短正文、不抽取台词、
+不生成语音条标记。该入口不在 `ui.actions` 中，只允许宿主为 `novel-writer`
+注入的受限运行能力调用。
+
+1.1.8 是市场发布版本：保留 `longForm` 动作与完整 WAV 合成实现，并把清单入口
+固定到 `actions-v5.mjs`。此前市场中的 1.1.6 没有这个宿主内部动作，导致小说
+朗读报「没有实现动作 longForm」；从市场升级到此版本后，现有原生设置与音色方案
+都会保留。
+
 ## 文件清单
 
 | 文件 | 用途 |
 |---|---|
 | `plugin.json` | Roost 扩展清单、设置声明、说明与面板动作 |
 | `server.mjs` | 零安装依赖的 stdio MCP 服务及两个工具 |
-| `actions-v4.mjs` / 旧 actions 入口 | 新面板动作入口与兼容转发 |
+| `actions-v5.mjs` | 面板动作入口、版本化依赖加载与宿主内部 `longForm` |
 | `lib/launcher.mjs` | 本机独立进程启动、状态、并发启动锁与持久日志 |
 | `service-runner.py` | 在内存适配原 API、串行模型修改请求与缓存最近完整语义 |
 | `page.html` | 音色方案、配置、状态、服务检查与试听页面 |
