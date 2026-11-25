@@ -3,17 +3,8 @@ import {mkdirSync, mkdtempSync, rmSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
-import { setTimeout as realSetTimeout } from 'node:timers';
-import { setTimeout as delay } from 'node:timers/promises';
 
 import { createNovelChatPlugin } from '../index.js';
-
-// 实现里的 watch 轮询定时器是 unref 的（不该拖住宿主进程）。Node 22 的 test runner
-// 在事件循环空掉时会取消还没 settle 的用例，所以等待期间用一个 ref'd 定时器按住。
-function keepAlive(ms = 8000) {
-  const timer = realSetTimeout(() => {}, ms);
-  return () => clearTimeout(timer);
-}
 
 function createHarness(options = {}) {
   const result = options.result || { handled: true };
@@ -257,50 +248,47 @@ test('多个机器人实例各自使用自己的上下文', async () => {
   }
 });
 
-test('父任务已取消时不再 watch 自动朗读子任务', async () => {
-  let parentResolve;
-  let childWatched = false;
-  const parentWatched = new Promise((resolve) => { parentResolve = resolve; });
+test('父任务已取消时不再 watch 自动朗读子任务', async (t) => {
+  const scheduled = [];
+  const originalSetTimeout = globalThis.setTimeout;
+  globalThis.setTimeout = (callback, delay, ...args) => {
+    if (delay === 900) {
+      scheduled.push(callback);
+      return { unref() {} };
+    }
+    return originalSetTimeout(callback, delay, ...args);
+  };
+  t.after(() => { globalThis.setTimeout = originalSetTimeout; });
+
+  const watched = [];
   const harness = createHarness({
     result: async (payload) => {
       if (payload?.op !== 'watch') {
         return { handled: true, taskId: 'parent' };
       }
-      if (payload.taskId === 'parent') {
-        parentResolve();
-        return {
-          handled: true,
-          task: {
-            id: 'parent',
-            status: 'cancelled',
-            followUps: ['child'],
-          },
-          outbox: [],
-        };
-      }
-      if (payload.taskId === 'child') {
-        childWatched = true;
-        return {
-          handled: true,
-          task: { id: 'child', status: 'done', followUps: [] },
-          outbox: [],
-        };
-      }
-      return { handled: true };
+      watched.push(payload.taskId);
+      return {
+        handled: true,
+        task: {
+          id: payload.taskId,
+          status: payload.taskId === 'parent' ? 'cancelled' : 'done',
+          followUps: payload.taskId === 'parent' ? ['child'] : [],
+        },
+        outbox: [],
+      };
     },
   });
-  const keep = keepAlive();
   try {
     assert.equal(await harness.runCommand(harness.message('cancelled-follow-up', {
       command: true,
       args: ['领取'],
     })), true);
-    // 父任务取消分支不保证一定触发 watch；带超时兜底，避免用例悬挂。
-    await Promise.race([parentWatched, delay(1500)]);
-    await new Promise((resolve) => setImmediate(resolve));
-    assert.equal(childWatched, false);
+    // 必须真的安排并执行父任务的首次 watch，不能靠超时静默通过。
+    assert.equal(scheduled.length, 1, '父任务必须安排 watch 轮询');
+    await scheduled[0]();
+    assert.deepEqual(watched, ['parent'], '只轮询已取消的父任务，不轮询 follow-up 子任务');
+    assert.equal(scheduled.length, 1, '父任务取消后不应继续调度');
   } finally {
-    keep();
     harness.close();
   }
 });
