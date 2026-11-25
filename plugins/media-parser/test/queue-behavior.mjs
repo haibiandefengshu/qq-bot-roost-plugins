@@ -10,13 +10,6 @@ function deferred() {
   return { promise, resolve, reject };
 }
 const tick = () => new Promise((resolve) => setImmediate(resolve));
-// 队列的等待/任务定时器是 unref 的（不该拖住宿主进程）。Node 22 的 test runner
-// 判定"事件循环已空"时会取消还没 settle 的用例，所以这里用一个 ref'd 定时器
-// 把事件循环按住，直到本轮断言真正结束；拿到 release 后立刻清掉。
-function keepAlive(ms) {
-  const timer = setTimeout(() => {}, ms);
-  return () => clearTimeout(timer);
-}
 const sent = { text: 0, image: 0, video: 1, voice: 0, file: 0 };
 const link = (id = 'one') => ({ platform: 'bilibili', url: `https://b23.tv/${id}`, key: `https://b23.tv/${id}` });
 function fixture(config = {}, extra = {}) {
@@ -66,18 +59,23 @@ test('receipt time determines waiting expiry; an old message never starts parsin
 });
 
 test('queued message expires after its own queue budget and is removed', async () => {
-  // queueWaitSeconds 在实现里按秒 clamp 到最小 1，所以这里给足 1 秒预算。
   const { queue } = fixture({ concurrency: 1, queueWaitSeconds: 1 });
   await queue.ready;
-  const release = keepAlive(4000);
   const hold = deferred();
-  const first = queue.enqueue({ session: 'a', run: () => hold.promise });
-  const second = queue.enqueue({ session: 'a', run: () => { throw new Error('must not run'); } });
+  // queueWaitSeconds is clamped to 1s, so backdate receipt to leave ~100ms of
+  // real waiting budget for the second message to expire inside.
+  const receivedAt = Date.now() - 900;
+  let secondRan = false;
+  const first = queue.enqueue({ session: 'a', receivedAt, run: () => hold.promise });
+  const second = queue.enqueue({ session: 'a', receivedAt, run: () => { secondRan = true; throw new Error('must not run'); } });
+  // The queue's wait timer is unref'd; keep a referenced timer alive that is
+  // longer than the remaining budget so the expiry can actually fire.
   const observed = assert.rejects(second, { code: 'QUEUE_WAIT_TIMEOUT' });
-  await delay(1150); await observed;
+  await delay(250); await observed;
+  assert.equal(secondRan, false);
   assert.equal(queue.snapshot().waiting, 0);
+  assert.equal(queue.get(second.taskId).state, 'expired');
   hold.resolve({ claimed: false }); await first; await tick();
-  release();
 });
 
 test('all links share a deadline and timeout keeps locks until the real work exits', async () => {

@@ -8,7 +8,7 @@ import zlib from 'node:zlib';
 import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import {
-  createEngineHost, ENGINE_VERSION, ORIGINAL_ARCHIVE_SHA256, parseEngineUrl,
+  createEngineHost, credentialSecretConfig, ENGINE_VERSION, ORIGINAL_ARCHIVE_SHA256, parseEngineUrl,
   readSafeTarGz, SERVICE_ID,
 } from '../engine-host.js';
 
@@ -253,6 +253,27 @@ test('healthy recorded managed instances survive new host objects and shutdown r
     assert.equal(await reloaded.stop(), true);
     assert.equal(shutdowns, 1);
   } finally { await fixture.close(); }
+});
+
+test('credential merge keeps the canonical root Bili cookie alongside upstream secrets', () => {
+  const merged = credentialSecretConfig({
+    engineToken: 'ENGINE-PRIVATE',
+    engine: { token: 'ENGINE-TOKEN' },
+    bilibili_enhanced: { cookie: 'ROOT-COOKIE', use_cookie: true },
+    pixiv: { cookie: 'PIXIV-COOKIE' },
+    upstream: {
+      bilibili_enhanced: { cookie: 'NESTED-STALE', other_field: 2 },
+      other_platform: { token: 'UPSTREAM-TOKEN' },
+    },
+  });
+  assert.equal(merged.bilibili_enhanced.cookie, 'ROOT-COOKIE');
+  assert.equal(merged.bilibili_enhanced.use_cookie, true);
+  assert.equal(merged.bilibili_enhanced.other_field, 2);
+  assert.equal(merged.pixiv.cookie, 'PIXIV-COOKIE');
+  assert.equal(merged.other_platform.token, 'UPSTREAM-TOKEN');
+  assert.equal('engineToken' in merged, false);
+  assert.equal('engine' in merged, false);
+  assert.equal('upstream' in merged, false);
 });
 
 test('a recorded PID does not authorize stopping a mismatched instance', async () => {

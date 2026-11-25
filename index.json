@@ -2,7 +2,7 @@
   "schema": 4,
   "repo": "roost-qq/qq-bot-roost-plugins",
   "branch": "main",
-  "updated": "2026-11-24",
+  "updated": "2026-11-25",
   "plugins": [
     {
       "id": "ai-native",
@@ -378,14 +378,14 @@
     {
       "id": "media-parser",
       "name": "流媒体聚合解析",
-      "version": "0.1.0",
-      "description": "自动解析分享链接，按顺序发送视频、图集、音频与正文",
+      "version": "0.2.0",
+      "description": "自动解析分享链接，可选 B 站私信提醒；默认不调用模型",
       "tags": [],
       "frameworkVersion": ">=1.1.5",
       "runtime": "node",
       "path": "plugins/media-parser",
-      "sha256": "f45db73b07595c209b0a5b83945ebd30ac8a711ff961263f982ff51dcdeebf4e",
-      "sha256_v2": "2752e789d0404f6cb5fe1d5e07e88545503f11179a563360224b502eaa0380c2",
+      "sha256": "86bf286f411e661d20fe26c03ca40cec338a7eb7b4b23a4b0b2979da3fa6ea98",
+      "sha256_v2": "4be1e1473d177a1d75eb87f5fe865ee31f6fab2769353fae76a425d182f4602c",
       "verified": "official"
     },
     {

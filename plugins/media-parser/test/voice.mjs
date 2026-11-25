@@ -161,7 +161,7 @@ test('压缩音频时长检测使用隐藏、无 shell 的进程；超过 60 秒
   });
   assert.equal(duration, 61);
   assert.equal(invocation.options.windowsHide, true);
-  assert.ok(!invocation.options.shell);
+  assert.equal(invocation.options.shell, false);
   assert.ok(!invocation.args.includes('-t'));
   assert.equal(invocation.args[invocation.args.indexOf('-protocol_whitelist') + 1], 'file,pipe');
   assert.equal(invocation.args[invocation.args.indexOf('-format_whitelist') + 1], 'mov,matroska,webm,mp3,wav,ogg,flac,aac,amr');
@@ -212,6 +212,7 @@ test('伪音频 playlist 被受限 ffmpeg 拒绝后不会进入无约束的框�
     spawnProcess: (_command, args, options) => {
       assert.equal(args[args.indexOf('-format_whitelist') + 1].includes('hls'), false);
       assert.equal(options.windowsHide, true);
+      assert.equal(options.shell, false);
       const child = new EventEmitter();
       child.stdout = new PassThrough(); child.stderr = new PassThrough(); child.kill = () => {};
       queueMicrotask(() => child.emit('exit', 1));
