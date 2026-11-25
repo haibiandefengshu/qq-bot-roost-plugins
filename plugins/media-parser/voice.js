@@ -103,7 +103,7 @@ export function probeAudioDuration(filename, ffmpeg, {
     const child = spawnProcess(ffmpeg, [
       '-hide_banner', '-loglevel', 'error', '-nostdin', ...INPUT_RESTRICTIONS, '-i', filename,
       '-map', '0:a:0', '-vn', '-sn', '-dn', '-progress', 'pipe:1', '-nostats', '-f', 'null', '-',
-    ], { windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] });
+    ], { windowsHide: true, shell: false, stdio: ['ignore', 'pipe', 'pipe'] });
     let seconds = 0;
     let remainder = '';
     let finished = false;
@@ -163,7 +163,7 @@ export async function transcodeCanonicalWav(filename, ffmpeg, {
         '-hide_banner', '-loglevel', 'error', '-nostdin', ...INPUT_RESTRICTIONS, '-i', filename,
         '-map', '0:a:0', '-vn', '-sn', '-dn', '-f', 'wav', '-ar', '24000', '-ac', '1',
         '-c:a', 'pcm_s16le', '-fs', String(MAX_VOICE_BYTES + 1), '-y', output,
-      ], { windowsHide: true, stdio: ['ignore', 'ignore', 'pipe'] });
+      ], { windowsHide: true, shell: false, stdio: ['ignore', 'ignore', 'pipe'] });
       let finished = false;
       let stderrLength = 0;
       const finish = (error) => {

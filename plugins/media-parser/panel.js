@@ -5,7 +5,7 @@ import { PLATFORM_MODES, redact, isObject } from './settings.js';
 import { extractLinks, REPLY_JUDGE_BYPASS } from './links.js';
 import { isInternalChatText } from './delivery.js';
 
-export const PANEL_AUTH_BOUNDARY = 'Roost 在插件路由之前校验面板会话或本插件页面令牌、JSON Content-Type 与同源策略。当前宿主 ctx 不向插件提供用户或角色身份；维护权限随本管理页面的实际授权令牌授予，不能在插件内进一步区分 owner。请求体自报 owner 不参与授权。';
+export const PANEL_AUTH_BOUNDARY = 'Roost 在插件路由之前校验面板会话或本插件页面令牌、JSON Content-Type 与同源策略。当前宿主 ctx 不向插件提供用户或角色身份；维护权限随本管理页面的实际授权令牌授予，不能在插件内进一步区分 owner。页面维护权限不等于 QQ 主人身份。请求体自报 owner 不参与授权；chatId、userId 或 target 也不能指定私信接收目标。';
 
 export function previewOutcome(outcome, sanitize = redact) {
   const messages = [];
@@ -88,9 +88,16 @@ export function registerPanel(ctx, runtime) {
     if (!runtime.isActive()) return respond(req, 409, { error: '该页面属于已停用的插件代次，请刷新面板' });
     try {
       await runtime.ready;
-      return await handler(req);
+      if (!runtime.isActive()) return respond(req, 409, { error: '该页面属于已停用的插件代次，请刷新面板' });
+      const result = await handler(req);
+      if (!runtime.isActive()) return respond(req, 409, { error: '该页面属于已停用的插件代次，请刷新面板' });
+      return result;
     } catch (error) {
-      return respond(req, error?.code === 'QUEUE_FULL' ? 429 : 400, { error: runtime.settings.sanitize(error?.message || '操作失败') });
+      const code = error?.code === 'QUEUE_FULL' ? 429 : error?.code === 'DM_STALE' ? 409 : 400;
+      const message = url.startsWith('/bili/')
+        ? runtime.dmErrorText?.(error) || '私信功能暂时不可用。'
+        : runtime.settings.sanitize(error?.message || '操作失败');
+      return respond(req, code, { error: message });
     }
   });
   route('GET', '/status', async () => runtime.publicStatus());
@@ -101,8 +108,13 @@ export function registerPanel(ctx, runtime) {
   route('PUT', '/config', async ({ body }) => {
     const patch = isObject(body?.config) ? body.config : body;
     if (!isObject(patch)) throw new Error('缺少配置对象');
+    if (patch.biliDmEnabled === true && typeof runtime.verifyDmEnable === 'function') {
+      const check = await runtime.verifyDmEnable();
+      if (!check.ok) throw new Error(check.text);
+    }
     const previous = runtime.settings.current();
     const config = await runtime.settings.saveConfig(patch);
+    runtime.applyDmConfig?.();
     const restartKeys = ['engineMode', 'engineUrl', 'pythonPath', 'ffmpegPath', 'externalCacheRoot', 'hotComments', 'translation', 'maxFileMiB'];
     runtime.restartRequired ||= restartKeys.some((key) => previous[key] !== config[key]);
     runtime.refresh();
@@ -149,6 +161,27 @@ export function registerPanel(ctx, runtime) {
     return { task: runtime.settings.sanitize(task) };
   });
   route('GET', '/boundaries', async () => runtime.boundaries);
+  // Dedicated Bilibili login and private-message routes stay inside the same
+  // authenticated plugin route prefix. The dispatcher's maintenance token is
+  // not owner identity; these handlers never accept a target from the body.
+  route('GET', '/bili/login/status', async () => runtime.dmLoginStatus(true));
+  route('POST', '/bili/login/start', async () => runtime.dmLoginStart());
+  route('POST', '/bili/login/cancel', async () => runtime.dmLoginCancel());
+  route('GET', '/bili/login/inspect', async () => runtime.dmLoginInspect());
+  route('POST', '/bili/login/manual', async ({ body }) => runtime.dmLoginManual(body));
+  route('POST', '/bili/login/logout', async () => runtime.dmLoginLogout());
+  route('GET', '/bili/dm/status', async () => runtime.safeDmStatus());
+  route('GET', '/bili/dm/groups', async () => runtime.dmGroupOptions());
+  route('PUT', '/bili/dm/target', async ({ body }) => runtime.dmSetTarget(body));
+  route('PUT', '/bili/dm/config', async ({ body }) => {
+    const saved = await runtime.dmSaveConfig(body);
+    return { ...saved, dm: runtime.safeDmStatus() };
+  });
+  route('POST', '/bili/dm/check', async () => ({ ok: true, dm: await runtime.dmCheck() }));
+  route('POST', '/bili/dm/test', async () => {
+    const result = await runtime.dmSendTest();
+    return { ...result, note: '测试使用现有绑定并重新校验主人权限；不读取或消耗真实私信。' };
+  });
   if (typeof ctx.registerPage === 'function') {
     const file = fileURLToPath(new URL('./page.html', import.meta.url));
     // Reading the local template is short and does not wait for engine setup.

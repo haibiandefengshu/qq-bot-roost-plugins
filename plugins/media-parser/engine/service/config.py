@@ -240,4 +240,10 @@ def build_engine_config(raw: Dict[str, Any], settings: QQSettings) -> ConfigMana
         manager.bilibili.cookie_runtime_file = os.path.join(
             UpstreamConfig.build_runtime_dir(cache_dir, "bilibili"), "cookie.json"
         )
+    # Roost owns the shared Bilibili login in the Node layer. The upstream
+    # runtime cookie file (and its admin-assist writer) would otherwise take
+    # priority over the configured shared Cookie. Ignore that legacy file and
+    # keep configured-cookie validation and use_cookie behavior intact.
+    manager.bilibili.cookie_runtime_file = ""
+    manager.bilibili.enable_admin_assist = False
     return manager

@@ -1,5 +1,6 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import { randomUUID } from 'node:crypto';
 
 export const PLATFORM_IDS = Object.freeze([
   'bilibili', 'douyin', 'kuaishou', 'acfun', 'hongguo', 'netease', 'ximalaya',
@@ -28,12 +29,14 @@ export const DEFAULTS = Object.freeze({
   sendCaption: true, handleTextOnly: false, audioMode: 'auto',
   cacheSeconds: 1800, hotComments: 0, translation: false,
   pythonPath: '', ffmpegPath: '', externalCacheRoot: '',
+  biliDmEnabled: false, biliDmPollSeconds: 60, biliDmIncludeSystem: false,
 });
 
 const NUMBERS = {
   maxLinks: [1, 3], maxFileMiB: [1, 200], timeoutSeconds: [5, 300],
   concurrency: [1, 8], queueLimit: [0, 100], queueWaitSeconds: [1, 30],
   dedupeSeconds: [0, 3600], cacheSeconds: [60, 86400], hotComments: [0, 20],
+  biliDmPollSeconds: [60, 1800],
 };
 const SECRET_KEY = /(?:cookie|token|password|passwd|secret|api[_-]?key|authorization|access[_-]?key|credential)/i;
 const UNSAFE_KEYS = new Set(['__proto__', 'prototype', 'constructor']);
@@ -207,50 +210,150 @@ async function readJson(file, fallback) {
   }
 }
 
-async function writeJson(file, data) {
+async function writeJson(file, data, { guard } = {}) {
   await fs.mkdir(path.dirname(file), { recursive: true });
-  const temp = `${file}.${process.pid}.tmp`;
-  await fs.writeFile(temp, JSON.stringify(data, null, 2) + '\n', { encoding: 'utf8', mode: 0o600 });
-  await fs.rename(temp, file);
+  const temp = `${file}.${process.pid}.${randomUUID()}.tmp`;
+  try {
+    await fs.writeFile(temp, JSON.stringify(data, null, 2) + '\n', { encoding: 'utf8', mode: 0o600 });
+    if (guard !== undefined && (typeof guard !== 'function' || guard() !== true)) {
+      throw new Error('登录会话已失效，未保存 Cookie');
+    }
+    await fs.rename(temp, file);
+  } finally {
+    await fs.unlink(temp).catch(() => {});
+  }
 }
 
-export function createSettings(ctx) {
+const BILI_COOKIE_MAX = 8192;
+
+function hasOwn(value, key) {
+  return isObject(value) && Object.prototype.hasOwnProperty.call(value, key);
+}
+
+/** Return the canonical Bili cookie, preferring the legacy upstream location. */
+function readCanonicalBiliCookie(credentials) {
+  const root = isObject(credentials?.bilibili_enhanced) ? credentials.bilibili_enhanced : null;
+  const upstream = isObject(credentials?.upstream) ? credentials.upstream : null;
+  const nested = upstream && isObject(upstream.bilibili_enhanced) ? upstream.bilibili_enhanced : null;
+  if (hasOwn(nested, 'cookie')) return typeof nested.cookie === 'string' ? nested.cookie : '';
+  if (hasOwn(root, 'cookie')) return typeof root.cookie === 'string' ? root.cookie : '';
+  return '';
+}
+
+/**
+ * Move the Bili cookie to the single canonical root location. A present nested
+ * value (including an explicit empty string) wins over the root legacy value.
+ * Other platforms and unrelated fields are left untouched.
+ */
+function normalizeBiliCookie(credentials) {
+  if (!isObject(credentials)) return '';
+  const root = isObject(credentials.bilibili_enhanced) ? credentials.bilibili_enhanced : null;
+  const upstream = isObject(credentials.upstream) ? credentials.upstream : null;
+  const nested = upstream && isObject(upstream.bilibili_enhanced) ? upstream.bilibili_enhanced : null;
+
+  let present = false;
+  let value = '';
+  if (hasOwn(nested, 'cookie')) {
+    present = true;
+    value = typeof nested.cookie === 'string' ? nested.cookie : '';
+    delete nested.cookie;
+  } else if (hasOwn(root, 'cookie')) {
+    present = true;
+    value = typeof root.cookie === 'string' ? root.cookie : '';
+  }
+
+  if (present) credentials.bilibili_enhanced = { ...(root || {}), cookie: value };
+  return present ? value : readCanonicalBiliCookie(credentials);
+}
+
+/** An explicit root-level patch must not lose to a stale nested legacy value. */
+function dropStaleNestedBiliCookie(target, patch) {
+  const rootPatched = hasOwn(patch?.bilibili_enhanced, 'cookie');
+  const nestedPatched = hasOwn(patch?.upstream?.bilibili_enhanced, 'cookie');
+  if (rootPatched && !nestedPatched && isObject(target?.upstream?.bilibili_enhanced)) {
+    delete target.upstream.bilibili_enhanced.cookie;
+  }
+}
+
+export function createSettings(ctx, { initialBarrier, isActive } = {}) {
   if (!ctx?.dataDir) throw new Error('宿主未提供插件数据目录');
   const advancedFile = path.join(ctx.dataDir, 'engine-settings.json');
   const credentialsFile = path.join(ctx.dataDir, 'credentials.json');
   let advanced = engineDefaults();
   let credentials = {};
+  let cookieRevision = 0;
   let writeTail = Promise.resolve();
+  const cookieListeners = new Set();
+  const runtimeActive = () => {
+    if (typeof isActive !== 'function') return true;
+    try { return isActive() === true; } catch { return false; }
+  };
+  const inactiveError = () => {
+    const error = new Error('插件已停用，已拒绝写入');
+    error.code = 'DM_STALE';
+    return error;
+  };
+  const assertActive = () => {
+    if (!runtimeActive()) throw inactiveError();
+  };
+  const guardFails = (guard) => guard !== undefined
+    && (typeof guard !== 'function' || guard() !== true);
+  const commitGuard = (guard) => {
+    if (guard === undefined) return typeof isActive === 'function' ? runtimeActive : undefined;
+    return () => {
+      if (typeof guard !== 'function' || guard() !== true) return false;
+      return runtimeActive();
+    };
+  };
   const serial = (fn) => {
     const result = writeTail.then(fn);
     writeTail = result.catch(() => {});
     return result;
   };
-  const normalize = () => {
+  const normalize = (target = advanced) => {
     const cfg = readConfig(ctx);
-    advanced.parsers ??= {};
+    target.parsers ??= {};
     for (const id of PLATFORM_IDS) {
-      if (!PLATFORM_MODES.includes(advanced.parsers[id])) advanced.parsers[id] = '全部发送';
+      if (!PLATFORM_MODES.includes(target.parsers[id])) target.parsers[id] = '全部发送';
     }
-    advanced.translation ??= {};
-    advanced.translation.enable = cfg.translation;
-    delete advanced.translation.enabled;
-    advanced.message ??= {};
-    advanced.message.hot_comments = { ...advanced.message.hot_comments, count: cfg.hotComments };
-    advanced.message.text_metadata = { ...advanced.message.text_metadata, quote_user_message: false };
-    advanced.download = {
-      ...advanced.download,
-      max_video_size_mb: Math.min(Number(advanced.download?.max_video_size_mb) || cfg.maxFileMiB, cfg.maxFileMiB),
-      max_audio_size_mb: Math.min(Number(advanced.download?.max_audio_size_mb) || cfg.maxFileMiB, cfg.maxFileMiB),
+    target.translation ??= {};
+    target.translation.enable = cfg.translation;
+    delete target.translation.enabled;
+    target.message ??= {};
+    target.message.hot_comments = { ...target.message.hot_comments, count: cfg.hotComments };
+    target.message.text_metadata = { ...target.message.text_metadata, quote_user_message: false };
+    target.download = {
+      ...target.download,
+      max_video_size_mb: Math.min(Number(target.download?.max_video_size_mb) || cfg.maxFileMiB, cfg.maxFileMiB),
+      max_audio_size_mb: Math.min(Number(target.download?.max_audio_size_mb) || cfg.maxFileMiB, cfg.maxFileMiB),
     };
   };
+  const publishCookie = (before) => {
+    const after = readCanonicalBiliCookie(credentials);
+    if (after === before) return;
+    cookieRevision += 1;
+    const event = { revision: cookieRevision, hasCookie: Boolean(after) };
+    for (const listener of [...cookieListeners]) {
+      try {
+        const result = listener(event);
+        if (result && typeof result.then === 'function') Promise.resolve(result).catch(() => {});
+      } catch { /* a subscriber cannot break storage */ }
+    }
+  };
   const ready = serial(async () => {
+    if (initialBarrier) await initialBarrier;
+    assertActive();
     const loaded = splitSecrets(await readJson(advancedFile, {}));
     advanced = deepMerge(advanced, loaded.clean);
-    credentials = deepMerge(await readJson(credentialsFile, {}), loaded.secrets);
+    const loadedCredentials = deepMerge(await readJson(credentialsFile, {}), loaded.secrets);
+    normalizeBiliCookie(loadedCredentials);
+    credentials = loadedCredentials;
+    cookieRevision = readCanonicalBiliCookie(credentials) ? 1 : 0;
     normalize();
-    await writeJson(advancedFile, advanced);
-    await writeJson(credentialsFile, credentials);
+    assertActive();
+    const guard = commitGuard();
+    await writeJson(credentialsFile, credentials, { guard });
+    await writeJson(advancedFile, advanced, { guard });
   });
   const api = {
     ready, advancedFile, credentialsFile,
@@ -274,35 +377,85 @@ export function createSettings(ctx) {
       id, name: PLATFORM_NAMES[id], mode: advanced.parsers[id],
       enabled: advanced.parsers[id] !== '关闭', verification: '未联网验证',
     })),
-    async saveConfig(patch) {
+    getBiliCookie: () => readCanonicalBiliCookie(credentials),
+    getBiliCookieRevision: () => cookieRevision,
+    subscribeBiliCookie(listener) {
+      if (typeof listener !== 'function') throw new Error('订阅回调必须是函数');
+      cookieListeners.add(listener);
+      return () => cookieListeners.delete(listener);
+    },
+    async setBiliCookie(cookie, { guard } = {}) {
+      const value = String(cookie ?? '');
+      if (value.length > BILI_COOKIE_MAX || /[\0\r\n]/.test(value)) throw new Error('Cookie 格式不合法');
+      await ready;
+      return serial(async () => {
+        assertActive();
+        if (guardFails(guard)) {
+          throw new Error('登录会话已失效，未保存 Cookie');
+        }
+        const before = readCanonicalBiliCookie(credentials);
+        const patch = { bilibili_enhanced: { cookie: value } };
+        const next = deepMerge(credentials, patch);
+        dropStaleNestedBiliCookie(next, patch);
+        normalizeBiliCookie(next);
+        // Recheck the commit guard after the temporary file exists and directly
+        // before rename. A cancel during writeFile must not commit late Cookie.
+        await writeJson(credentialsFile, next, { guard: commitGuard(guard) });
+        credentials = next;
+        publishCookie(before);
+        return { ok: true, hasCookie: Boolean(readCanonicalBiliCookie(credentials)) };
+      });
+    },
+    async clearBiliCookie(options) {
+      return api.setBiliCookie('', options);
+    },
+    async saveConfig(patch, { guard } = {}) {
       const valid = validateConfig(patch);
       await ready;
       return serial(async () => {
+        assertActive();
+        if (guardFails(guard)) {
+          throw new Error('维护会话已失效，未保存配置');
+        }
         if (typeof ctx.setConfig !== 'function') throw new Error('宿主不支持写插件配置');
         await ctx.setConfig(valid);
+        assertActive();
+        if (guardFails(guard)) {
+          throw new Error('维护会话已失效，未保存配置');
+        }
         normalize();
-        await writeJson(advancedFile, advanced);
+        await writeJson(advancedFile, advanced, { guard: commitGuard(guard) });
         return api.publicConfig();
       });
     },
-    async saveAdvanced(patch) {
+    async saveAdvanced(patch, { guard } = {}) {
       if (!isObject(patch) || Buffer.byteLength(JSON.stringify(patch)) > 256 * 1024) throw new Error('高级配置必须是 256 KiB 内的 JSON 对象');
       assertTree(patch);
       if (patch.parsers && (!isObject(patch.parsers) || Object.entries(patch.parsers).some(([id, mode]) => !PLATFORM_IDS.includes(id) || !PLATFORM_MODES.includes(mode)))) throw new Error('平台 ID 或输出模式不合法');
       await ready;
       return serial(async () => {
+        assertActive();
+        if (guardFails(guard)) {
+          throw new Error('维护会话已失效，未保存配置');
+        }
+        const before = readCanonicalBiliCookie(credentials);
         const parts = splitSecrets(patch);
         // The managed host owns transport authentication and cache roots.
         delete parts.clean.qq;
-        advanced = deepMerge(advanced, parts.clean);
-        credentials = deepMerge(credentials, parts.secrets);
-        normalize();
-        await writeJson(advancedFile, advanced);
-        await writeJson(credentialsFile, credentials);
+        const nextAdvanced = deepMerge(advanced, parts.clean);
+        const nextCredentials = deepMerge(credentials, parts.secrets);
+        dropStaleNestedBiliCookie(nextCredentials, parts.secrets);
+        normalizeBiliCookie(nextCredentials);
+        normalize(nextAdvanced);
+        await writeJson(advancedFile, nextAdvanced, { guard: commitGuard(guard) });
+        await writeJson(credentialsFile, nextCredentials, { guard: commitGuard(guard) });
+        advanced = nextAdvanced;
+        credentials = nextCredentials;
+        publishCookie(before);
         return api.advanced();
       });
     },
-    async saveCredentials(patch) {
+    async saveCredentials(patch, { guard } = {}) {
       if (!isObject(patch)) throw new Error('凭据必须是 JSON 对象');
       assertTree(patch);
       if (Buffer.byteLength(JSON.stringify(patch)) > 128 * 1024) throw new Error('凭据过大');
@@ -311,8 +464,17 @@ export function createSettings(ctx) {
       if (hasLeaf(parts.clean)) throw new Error('凭据配置只接受 cookie、token、api_key 等字段');
       await ready;
       return serial(async () => {
-        credentials = deepMerge(credentials, parts.secrets);
-        await writeJson(credentialsFile, credentials);
+        assertActive();
+        if (guardFails(guard)) {
+          throw new Error('维护会话已失效，未保存配置');
+        }
+        const before = readCanonicalBiliCookie(credentials);
+        const next = deepMerge(credentials, parts.secrets);
+        dropStaleNestedBiliCookie(next, parts.secrets);
+        normalizeBiliCookie(next);
+        await writeJson(credentialsFile, next, { guard: commitGuard(guard) });
+        credentials = next;
+        publishCookie(before);
         return api.credentialHints();
       });
     },

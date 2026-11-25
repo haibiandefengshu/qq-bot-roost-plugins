@@ -145,6 +145,27 @@ function merge(base, override) {
   return result;
 }
 
+/**
+ * Merge root credential secrets with the legacy `upstream` block while keeping
+ * the canonical root Bili cookie. The old layout duplicated the cookie under
+ * `upstream.bilibili_enhanced`; that duplicate is ignored so it cannot mask the
+ * shared Node login credential. All other upstream secrets still apply.
+ */
+export function credentialSecretConfig(credentials = {}) {
+  const source = credentials && typeof credentials === 'object' && !Array.isArray(credentials) ? credentials : {};
+  const root = {};
+  for (const [key, value] of Object.entries(source)) {
+    if (['engineToken', 'engine', 'upstream', '__proto__', 'constructor', 'prototype'].includes(key)) continue;
+    root[key] = structuredClone(value);
+  }
+  const upstream = source.upstream && typeof source.upstream === 'object' && !Array.isArray(source.upstream)
+    ? structuredClone(source.upstream) : {};
+  if (upstream.bilibili_enhanced && typeof upstream.bilibili_enhanced === 'object' && !Array.isArray(upstream.bilibili_enhanced)) {
+    delete upstream.bilibili_enhanced.cookie;
+  }
+  return merge(root, upstream);
+}
+
 export function parseEngineUrl(value = 'http://127.0.0.1:3199') {
   let url;
   try { url = new URL(value); } catch { throw new EngineHostError('Invalid engine URL', 'ENGINE_CONFIG'); }
@@ -187,12 +208,34 @@ function portOpen(host, port) {
 function run(command, args, options = {}) {
   return new Promise((resolve) => {
     execFile(command, args, {
-      windowsHide: true, timeout: 120000, maxBuffer: 4 * 1024 * 1024, ...options,
+      windowsHide: true, shell: false, timeout: 120000, maxBuffer: 4 * 1024 * 1024, ...options,
     }, (error, stdout, stderr) => resolve({
       code: error ? error.code ?? 1 : 0,
       stdout: String(stdout || ''), stderr: String(stderr || ''), error,
     }));
   });
+}
+
+/**
+ * Options for the managed long-running Python engine process.
+ *
+ * On Windows a detached child receives its own console, which can surface a
+ * visible window when the host itself has no console. Hidden windows are
+ * therefore requested without detaching on win32. POSIX keeps the detached
+ * behavior so the engine survives the host process. `shell` is always off so
+ * every argument (including Chinese paths and spaces) reaches argv unchanged.
+ */
+export function managedPythonSpawnOptions({
+  cwd, logFd, env, platform = process.platform,
+} = {}) {
+  return {
+    cwd,
+    windowsHide: true,
+    detached: platform !== 'win32',
+    shell: false,
+    stdio: ['ignore', logFd, logFd],
+    env,
+  };
 }
 
 async function limitedJson(response) {
@@ -475,10 +518,7 @@ export function createEngineHost({ ctx, config = () => ({}) }) {
     const advanced = readJson(settingsFile());
     const credentials = readJson(credentialsFile());
     raw = merge(raw, advanced.upstream || advanced);
-    const secretConfig = credentials.upstream || Object.fromEntries(
-      Object.entries(credentials).filter(([key]) => !['engineToken', 'engine'].includes(key)),
-    );
-    raw = merge(raw, secretConfig);
+    raw = merge(raw, credentialSecretConfig(credentials));
     const maxFileMiB = boundedNumber(cfg().maxFileSizeMiB ?? cfg().maxFileMiB ?? cfg().maxFileSizeMb, 200, 1, 200);
     const configuredVideo = boundedNumber(raw.download?.max_video_size_mb, maxFileMiB, 0, 200);
     raw.download = {
@@ -669,15 +709,17 @@ export function createEngineHost({ ctx, config = () => ({}) }) {
         const fd = fs.openSync(contained(logFile), 'a', 0o600);
         phase('starting', 'Starting the authenticated local engine');
         try {
-          const child = spawn(python, [path.join(engineDir, 'run_engine.py'), '--config', configFile], {
-            cwd: dataDir, windowsHide: true, detached: true, stdio: ['ignore', fd, fd],
-            env: runtimeEnv({
-              MEDIA_PARSER_TOKEN: info.token,
-              MEDIA_PARSER_INSTANCE_ID: info.instanceId,
-              MEDIA_PARSER_SOURCE_HASH: info.sourceHash,
-              ...(cfg().ffmpegPath ? { MEDIA_PARSER_FFMPEG: String(cfg().ffmpegPath) } : {}),
-            }),
-          });
+          const child = spawn(python, [path.join(engineDir, 'run_engine.py'), '--config', configFile],
+            managedPythonSpawnOptions({
+              cwd: dataDir,
+              logFd: fd,
+              env: runtimeEnv({
+                MEDIA_PARSER_TOKEN: info.token,
+                MEDIA_PARSER_INSTANCE_ID: info.instanceId,
+                MEDIA_PARSER_SOURCE_HASH: info.sourceHash,
+                ...(cfg().ffmpegPath ? { MEDIA_PARSER_FFMPEG: String(cfg().ffmpegPath) } : {}),
+              }),
+            }));
           state.child = child;
           child.once('error', () => {
             state.lastError = 'Starting the Python engine process failed';

@@ -69,7 +69,9 @@ test('真实 Roost Outbound 保持主动降级开启，并在 5 次被动预算�
   const result = await deliver(outcome(...images.map((image) => s('image', image))), h);
   assert.equal(result.sent.image, 4);
   assert.equal(h.calls.length, 5);
-  assert.equal(h.outbound.passiveCount.get(h.msg.id), 5);
+  // Current host Outbound no longer exposes a passiveCount map. The per-message
+  // passive send count lives in the api seqMap that the host consults for budget.
+  assert.equal(h.ctx.api.seqMap.get(h.msg.id), 5);
   assert.equal(h.outbound.stats.active, 0);
   assert.ok(h.calls.every((call) => call.payload.msgId === h.msg.id));
   assert.match(h.calls.at(-1).payload.content, /部分内容未能发送/);

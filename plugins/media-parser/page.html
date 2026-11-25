@@ -13,7 +13,7 @@
 </head>
 <body>
 <main>
-  <div class="top"><div><h1>流媒体聚合解析</h1><div class="muted">分享链接 → 本机解析 → 当前会话有序投递</div></div><span class="badge">Roost 原生插件 · v0.1.0</span></div>
+  <div class="top"><div><h1>流媒体聚合解析</h1><div class="muted">分享链接 → 本机解析 → 当前会话有序投递</div></div><span class="badge">Roost 原生插件 · v0.2.0</span></div>
   <div id="feedback" role="status"></div>
   <section class="card">
     <div class="row"><h2 style="margin:0">引擎与任务</h2><span id="engine-badge" class="badge">读取中</span></div>
@@ -78,6 +78,48 @@
       <div class="scroll"><table><thead><tr><th>时间</th><th>平台及来源</th><th>状态</th><th>发送数量</th><th>待确认 / 失败 / 跳过</th><th>原因</th></tr></thead><tbody id="task-rows"></tbody></table></div>
       <p class="muted" style="margin-top:12px">最多保留 200 条记录，不持久化解析正文。待确认表示投递结果尚未确认，不会整份重发。</p>
     </section>
+    <section class="card wide" id="dm-card">
+      <div class="row" style="justify-content:space-between"><h2>B站私信提醒</h2><span id="dm-badge" class="badge">默认关闭</span></div>
+      <p class="muted">私信提醒默认关闭。登录使用共享 B 站凭据；登录成功不会自动启用提醒，也不会自动开启 Cookie 增强解析。接收目标只能在机器人主人 QQ 私聊中绑定。</p>
+      <div class="grid">
+        <div>
+          <h3>登录</h3>
+          <div class="row">
+            <button id="dm-login-start" class="primary" type="button">扫码登录</button>
+            <button id="dm-login-cancel" type="button">取消扫码</button>
+            <button id="dm-login-inspect" type="button">检查登录</button>
+            <button id="dm-login-logout" class="danger" type="button">退出登录</button>
+          </div>
+          <div id="dm-login-status" class="status-line muted" style="margin-top:10px">读取中</div>
+          <div id="dm-qr"></div>
+          <form id="dm-manual-form">
+            <label><span>手动 Cookie（保存后清空输入，不回显）</span><input type="password" id="dm-manual-cookie" autocomplete="new-password" spellcheck="false" placeholder="粘贴后保存，不会在页面再次显示"></label>
+            <div class="actions"><button class="primary" type="submit">保存 Cookie</button><small>仅保存到共享凭据文件；不会自动启用提醒。</small></div>
+          </form>
+        </div>
+        <div>
+          <h3>提醒与接收</h3>
+          <form id="dm-config-form"><div class="fields">
+            <label class="toggle"><input type="checkbox" name="biliDmEnabled"><span>启用私信提醒</span></label>
+            <label><span>轮询间隔秒（60–1800）</span><input type="number" name="biliDmPollSeconds" min="60" max="1800"></label>
+            <label class="toggle"><input type="checkbox" name="biliDmIncludeSystem"><span>纳入已支持的系统私信</span></label>
+          </div><div class="actions"><button class="primary" type="submit">保存私信设置</button><button id="dm-check" type="button">立即检查</button><button id="dm-test" type="button">发送测试通知</button></div></form>
+          <div id="dm-target-panel" class="notice" style="margin-top:14px">
+            <label class="toggle"><input type="checkbox" id="dm-send-to-group"><span>发送到群</span></label>
+            <p class="muted">勾选后，之后的自动私信提醒只发送到所选群，不再重复发送到主人私聊；主人绑定和管理命令仍保留在 QQ 私聊。</p>
+            <div class="row">
+              <select id="dm-group-select" disabled><option value="">先勾选“发送到群”</option></select>
+              <button id="dm-groups-refresh" type="button">刷新群列表</button>
+              <button id="dm-target-save" class="primary" type="button">保存接收目标</button>
+            </div>
+            <p id="dm-group-hint" class="muted">群列表来自机器人最近识别的群，未出现请在目标群发一条消息后刷新。</p>
+            <p id="dm-target-status" class="muted"></p>
+          </div>
+          <div id="dm-status" class="muted" style="margin-top:12px">读取中</div>
+          <p class="muted">绑定接收目标请在机器人主人 QQ 私聊发送 <code>/解析 私信 绑定</code>。页面授权是维护权限，不等于主人身份；页面不能读取私信正文；群目标只能从宿主已识别且启用的群中选择。</p>
+        </div>
+      </div>
+    </section>
     <section class="card">
       <h2>高级引擎参数</h2>
       <p class="muted">保留原引擎字段，支持文案显示、文本转图片、代理与平台参数。翻译开关使用 <code>translation.enable</code>，由上方翻译开关控制。凭据会转入单独的凭据文件。</p>
@@ -107,6 +149,9 @@ let totalPages = 1;
 let configLoaded = false;
 let refreshing = false;
 let operationTimer = null;
+let qrTimer = null;
+let dmTimer = null;
+let dmGroups = [];
 const credentialKeys = [
   ['engineToken','外部模式引擎认证 Token'],
   ['bilibili_enhanced.cookie','哔哩哔哩 Cookie'],
@@ -139,6 +184,125 @@ async function api(url, method, body) {
   const data = response.status === 204 ? {} : await response.json();
   if (!response.ok) throw new Error(data.error || '请求失败（' + response.status + '）');
   return data;
+}
+const loginStateLabels = {
+  idle: '未开始', starting: '生成中', waiting: '等待扫码', scanned: '已扫码待确认',
+  success: '已登录', expired: '已过期', cancelled: '已取消', error: '错误',
+  missing: '未登录', valid: '有效', invalid: '已失效', unavailable: '不可用'
+};
+const dmStateLabels = {
+  disabled: '已停用', waiting_login: '等待登录', waiting_owner: '等待绑定',
+  initializing: '初始化中', watching: '监听中', catching_up: '追赶中',
+  backoff: '退避中', paused_capacity: '容量暂停', error: '错误', unavailable: '不可用'
+};
+function timeText(value) {
+  return Number.isFinite(value) && value > 0 ? new Date(value).toLocaleString() : '—';
+}
+function showQr(dataUrl) {
+  const box = $('dm-qr');
+  box.replaceChildren();
+  if (typeof dataUrl !== 'string' || !dataUrl.startsWith('data:image/png;base64,')) return;
+  const image = element('img');
+  image.alt = 'B 站登录二维码';
+  image.src = dataUrl;
+  image.style.maxWidth = '220px';
+  image.style.display = 'block';
+  image.style.marginTop = '10px';
+  box.append(image);
+}
+function renderLogin(data) {
+  const login = data || {};
+  const state = loginStateLabels[login.state] || '不可用';
+  const expiry = Number.isFinite(login.expiresAt) ? ' · 有效期至 ' + new Date(login.expiresAt).toLocaleTimeString() : '';
+  const error = login.errorSummary ? ' · ' + login.errorSummary : '';
+  $('dm-login-status').textContent = '登录：' + state + expiry + error;
+  showQr(login.pngDataUrl);
+  const active = ['starting', 'waiting', 'scanned'].includes(login.state);
+  if (active && !qrTimer) qrTimer = setInterval(() => { loadLoginStatus().catch(() => {}); }, 3000);
+  if (!active && qrTimer) { clearInterval(qrTimer); qrTimer = null; }
+}
+function renderDm(data) {
+  const dm = data || {};
+  $('dm-badge').textContent = dm.enabled ? '提醒已启用' : '默认关闭';
+  const binding = dm.binding && dm.binding.bound ? '已绑定 ' + dm.binding.mask : '未绑定';
+  const lines = [
+    '监听：' + (dmStateLabels[dm.state] || '不可用') + (dm.reasonText ? '（' + dm.reasonText + '）' : ''),
+    '账号：' + (dm.account && dm.account.verified ? '本次运行已校验' : '未在本次运行校验') + '；绑定：' + binding,
+    '初始化/追赶：' + ((dm.discovery && dm.discovery.phase) || 'idle') + '；已扫描页 ' + ((dm.discovery && dm.discovery.pages) || 0),
+    '待发送：' + ((dm.queue && dm.queue.unfinished) || 0) + '；待核对：' + ((dm.queue && dm.queue.pending) || 0) + '；未知：' + ((dm.queue && dm.queue.unknown) || 0),
+    '上次成功：' + timeText(dm.lastSuccessAt) + '；下次重试：' + timeText(dm.nextRetryAt),
+    '轮询间隔：' + (dm.polling && dm.polling.seconds ? dm.polling.seconds : dm.pollSeconds || 60) + ' 秒'
+  ];
+  if (dm.moduleError) lines.push(dm.moduleError);
+  $('dm-status').textContent = lines.join('\n');
+  $('dm-status').style.whiteSpace = 'pre-line';
+}
+async function loadDmStatus() {
+  try {
+    const data = await api('/bili/dm/status');
+    renderDm(data);
+    return data;
+  } catch (error) { $('dm-status').textContent = error.message; return null; }
+}
+function updateGroupControls() {
+  const sendToGroup = $('dm-send-to-group').checked;
+  const select = $('dm-group-select');
+  select.disabled = !sendToGroup || dmGroups.length === 0;
+  $('dm-target-save').disabled = sendToGroup && dmGroups.length === 0;
+}
+function renderDmGroups(data) {
+  const selected = data && data.selected ? data.selected : {};
+  dmGroups = Array.isArray(data && data.groups) ? data.groups : [];
+  $('dm-send-to-group').checked = selected.sendToGroup === true;
+  const select = $('dm-group-select');
+  select.replaceChildren();
+  if (!dmGroups.length) {
+    const option = element('option', '暂无可选群');
+    option.value = '';
+    select.append(option);
+  } else {
+    const placeholder = element('option', '请选择群');
+    placeholder.value = '';
+    select.append(placeholder);
+    for (const group of dmGroups) {
+      const option = element('option', group.name + ' · ' + group.id.slice(-4));
+      option.value = group.id;
+      select.append(option);
+    }
+    if (selected.groupId && dmGroups.some((group) => group.id === selected.groupId)) {
+      select.value = selected.groupId;
+    }
+  }
+  $('dm-group-hint').textContent = dmGroups.length
+    ? '群列表来自机器人最近识别的群；选择后自动通知只发到这一个群。'
+    : '群列表来自机器人最近识别的群，未出现请在目标群发一条消息后刷新。';
+  $('dm-target-status').textContent = selected.sendToGroup
+    ? '当前自动通知目标：群 ' + String(selected.groupId || '').slice(-4)
+    : '当前自动通知目标：主人私聊';
+  updateGroupControls();
+}
+async function loadDmGroups() {
+  try {
+    const data = await api('/bili/dm/groups');
+    renderDmGroups(data);
+    return data;
+  } catch (error) {
+    $('dm-group-hint').textContent = error.message;
+    return null;
+  }
+}
+async function loadLoginStatus() {
+  try {
+    const data = await api('/bili/login/status');
+    renderLogin(data);
+    return data;
+  } catch (error) { $('dm-login-status').textContent = error.message; return null; }
+}
+async function dmAction(button, fn) {
+  if (button) button.disabled = true;
+  try { return await fn(); }
+  catch (error) { feedback(error.message, true); return null; }
+  finally { if (button) button.disabled = false; }
 }
 function formValues(form) {
   const out = {};
@@ -181,6 +345,7 @@ function setNested(target, keys, value) {
 async function loadConfig() {
   const data = await api('/config');
   fillForm($('settings-form'), data.config); fillForm($('engine-form'), data.config);
+  fillForm($('dm-config-form'), data.config);
   $('advanced').value = JSON.stringify(data.advanced,null,2);
   fillCredentials(data.credentials || {});
   $('restart-notice').hidden = !data.restartRequired;
@@ -330,11 +495,90 @@ $('preview-form').addEventListener('submit',(event) => {
     $('preview-result').replaceChildren(element('p','真实解析进行中…','muted')); watchPreview(data.taskId);
   });
 });
+$('dm-login-start').addEventListener('click', () => dmAction($('dm-login-start'), async () => {
+  const data = await api('/bili/login/start', 'POST', {});
+  renderLogin(data);
+  feedback('二维码已生成；请使用 B 站手机客户端扫码并确认。');
+  await loadDmStatus();
+}));
+$('dm-login-cancel').addEventListener('click', () => dmAction($('dm-login-cancel'), async () => {
+  renderLogin(await api('/bili/login/cancel', 'POST', {}));
+  feedback('扫码会话已取消。');
+}));
+$('dm-login-inspect').addEventListener('click', () => dmAction($('dm-login-inspect'), async () => {
+  const data = await api('/bili/login/inspect');
+  renderLogin(data);
+  feedback(data.state === 'valid' ? 'B 站登录有效。' : 'B 站登录未确认：' + (loginStateLabels[data.state] || '未知'));
+}));
+$('dm-login-logout').addEventListener('click', () => dmAction($('dm-login-logout'), async () => {
+  const data = await api('/bili/login/logout', 'POST', {});
+  feedback(data.warning || '已退出共享登录。');
+  await loadConfig().catch(() => {});
+  await loadDmStatus();
+  await loadLoginStatus();
+}));
+$('dm-manual-form').addEventListener('submit', (event) => {
+  event.preventDefault();
+  withButton(event.currentTarget, async () => {
+    const input = $('dm-manual-cookie');
+    const data = await api('/bili/login/manual', 'POST', { cookie: input.value });
+    input.value = '';
+    feedback(data.ok ? 'Cookie 校验并保存成功；不会自动启用提醒。' : 'Cookie 未通过校验，请确认后重试。');
+    renderLogin({ ...data, ...(await api('/bili/login/status')) });
+    await loadDmStatus();
+  });
+});
+$('dm-config-form').addEventListener('submit', (event) => {
+  event.preventDefault();
+  withButton(event.currentTarget, async () => {
+    const data = await api('/bili/dm/config', 'PUT', formValues($('dm-config-form')));
+    fillForm($('dm-config-form'), data.config || {});
+    renderDm(data.dm || await api('/bili/dm/status'));
+    feedback('私信设置已保存。');
+  });
+});
+$('dm-check').addEventListener('click', () => dmAction($('dm-check'), async () => {
+  const data = await api('/bili/dm/check', 'POST', {});
+  renderDm(data.dm);
+  feedback('已执行一次检查；若处于退避会遵守退避时间。');
+}));
+$('dm-test').addEventListener('click', () => dmAction($('dm-test'), async () => {
+  const data = await api('/bili/dm/test', 'POST', {});
+  feedback(data.sent > 0 ? '已发送带标记的测试通知。' : '测试通知未确认送达，请查看私信状态。');
+  await loadDmStatus();
+}));
+$('dm-send-to-group').addEventListener('change', updateGroupControls);
+$('dm-groups-refresh').addEventListener('click', () => dmAction($('dm-groups-refresh'), async () => {
+  await loadDmGroups();
+  feedback('群列表已刷新。');
+}));
+$('dm-target-save').addEventListener('click', () => dmAction($('dm-target-save'), async () => {
+  const sendToGroup = $('dm-send-to-group').checked;
+  const groupId = sendToGroup ? $('dm-group-select').value : '';
+  if (sendToGroup && !groupId) throw new Error('请先选择一个群，或取消“发送到群”。');
+  const data = await api('/bili/dm/target', 'PUT', { sendToGroup, groupId: sendToGroup ? groupId : undefined });
+  renderDmGroups({ groups: dmGroups, selected: data.selected || { sendToGroup, groupId } });
+  feedback(sendToGroup ? '接收目标已保存：自动通知只发送到所选群。' : '接收目标已保存：自动通知发送到主人私聊。');
+  await loadDmStatus();
+}));
 $('refresh').addEventListener('click',refresh);
 $('prev-page').addEventListener('click',() => { if (currentPage > 1) { currentPage--; loadTasks().catch((e) => feedback(e.message,true)); } });
 $('next-page').addEventListener('click',() => { if (currentPage < totalPages) { currentPage++; loadTasks().catch((e) => feedback(e.message,true)); } });
-loadConfig().then(refresh).catch((error) => feedback(error.message,true));
-setInterval(refresh,5000);
+loadConfig()
+  .then(refresh)
+  .then(loadDmStatus)
+  .then(loadDmGroups)
+  .then(loadLoginStatus)
+  .catch((error) => feedback(error.message,true));
+const refreshTimer = setInterval(refresh,5000);
+dmTimer = setInterval(() => { loadDmStatus().catch(() => {}); }, 8000);
+window.addEventListener('pagehide', () => {
+  clearInterval(refreshTimer);
+  clearInterval(dmTimer);
+  clearInterval(qrTimer);
+  clearTimeout(operationTimer);
+  qrTimer = null; dmTimer = null;
+});
 </script>
 </body>
 </html>
