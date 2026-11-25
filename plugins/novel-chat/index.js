@@ -102,7 +102,7 @@ export function createNovelChatPlugin(overrides = {}) {
   return {
     id: 'novel-chat',
     name: '小说对话',
-    version: '1.1.0',
+    version: '1.1.1',
     description: '注册统一 /小说 命令，通过本机认证传输传递真实消息身份并接收小说扩展生成的 TXT 与 MP3',
     priority: 120,
     config: {

@@ -51,6 +51,11 @@
 node --test test/*.mjs
 ```
 
+以上命令覆盖本插件的完整测试套件（传输、worker、服务、面板、朗读与集成）。
+`worker-integration.test.mjs` 会直接加载同仓库的兄弟插件目录 `plugins/novel-chat`，
+因此运行完整套件时需要保留完整的市场布局；只单独拷贝本插件时相关跨组件断言不具备
+运行条件。测试不需要私有宿主源码 checkout，也不需要安装额外依赖。
+
 `server.mjs` 是由宿主启动的 MCP/stdio 入口，没有 `--help` 参数；直接运行会挂起等待 stdin。
 手动排查请用 `node --test test/*.mjs`，或看宿主面板的扩展诊断信息。
 

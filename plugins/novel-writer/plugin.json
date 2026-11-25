@@ -5,7 +5,7 @@
   "serverName": "novel-writer",
   "name": "小说/人设卡创作",
   "description": "个人小说书库、人设卡、章节版本、后台续写、TXT 交付、长文 MP3 朗读与任务恢复",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "transport": "stdio",
   "command": "node",
   "args": [
