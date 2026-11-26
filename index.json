@@ -2,7 +2,7 @@
   "schema": 4,
   "repo": "roost-qq/qq-bot-roost-plugins",
   "branch": "main",
-  "updated": "2026-11-25",
+  "updated": "2026-11-26",
   "plugins": [
     {
       "id": "ai-native",
@@ -17,7 +17,7 @@
       "frameworkVersion": ">=0.8.1",
       "runtime": "node",
       "path": "plugins/ai-native",
-      "sha256": "8571a95b530ede783590c3ca4599260da396aad0cc0ba246d3f67cb1d384f2e2",
+      "sha256": "99ada6fb4bd3016836185aeec5de33ab7a67b399a7d791d1ab56655f8a4d0382",
       "author": "tdcq9594",
       "commands": [
         "ai"
@@ -406,7 +406,7 @@
         "识图"
       ],
       "runtime": "node",
-      "sha256": "12aca28c035e1c43185f4fde25faf404d66e24005ef852a0e8e7cdfa122be7c1",
+      "sha256": "b8bd22f91d7ae64c847a7bd9428f7d62330360e92979cbf9889e3076ab3afe4d",
       "frameworkVersion": ">=0.6.13",
       "category": "媒体与内容",
       "sha256_v2": "06e6aa9790236ca43344c60a1d6c70dec95842e68c5f84d9d078f0745c1f8635",
@@ -499,7 +499,7 @@
         "人设"
       ],
       "runtime": "node",
-      "sha256": "76f15ed64e97d6d38e139da94de4b881104738449973cbaf87b7b69a22d3fd5f",
+      "sha256": "76edd707e1fbeec30f21e99c54736173b98f4917d0b654d3344d747b7bbf699f",
       "frameworkVersion": ">=0.6.18",
       "category": "人格与人设",
       "sha256_v2": "bac880ff01cb22dc8a471fb00f3c734b8602d9f7851a2a2ba5f431d65f981f68",
@@ -615,7 +615,7 @@
         "trpg"
       ],
       "runtime": "node",
-      "sha256": "25ccabc1b702a7704d194bb9d26f6b3f1413fe4603e5f772bc9e91eace12c4f1",
+      "sha256": "bf33b5fbd2e211c5fc55ec47afe746e140955d6163b8b12535f55af77a9f8770",
       "frameworkVersion": ">=1.0.0",
       "category": "游戏与娱乐",
       "sha256_v2": "777ec3168b25a6737125e3b6326a8fec5a0b8fe28fe609a9096aeb0ac61d9553",

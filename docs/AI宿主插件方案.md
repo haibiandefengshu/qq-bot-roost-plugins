@@ -1,12 +1,14 @@
-# AI 宿主插件方案（ai-chat v3）
+# AI 宿主插件方案（历史设计档案）
 
-> **现状（ai-chat 4.0.0）**：本文是当时「三个适配器」的设计记录。
-> 4.0.0 起只保留 **dsh**，openai 直连和 webhook 都删了——
-> 那些能力 DSH 本来就有，插件里再养一份只会两边配置打架。
-> 下面的适配器章节当历史看，宿主协议部分仍然有效。
+> **⚠️ 本文是历史档案，描述的 `ai-chat` 插件已被移除。**
+> `ai-chat` 于 2026-11-23 随提交 `chore/remove-ai-chat` 从本仓删除（移除前最高版本 4.4.6），
+> 现行 AI 对话插件是 **[`ai-native`](../plugins/ai-native/README.md)**（直连模型，不依赖 DSH）。
+> 下面凡写 `ai-chat`、`/api/plugins/ai-chat/...`、`plugins/ai-chat/`、适配器体系、
+> 版本节奏的地方，都是当时的设计记录，**不代表现行实现**，请勿照此配置。
+> 有参考价值的是设计思路与约束；要落地请直接看 `ai-native` 与其 README。
 
-> 目标：把现在那份 710 行的 `ai-chat` 重写成一个**能接各种 AI 工作台**的插件。
-> DSH 只是其中一个分支，以后还能接 Claude Code、Cursor、本地 Ollama、自建服务。
+> 原目标（历史）：把当时的 `ai-chat` 重写成一个**能接各种 AI 工作台**的插件。
+> DSH 只是其中一个分支，当时还设想接 Claude Code、Cursor、本地 Ollama、自建服务。
 
 ---
 
@@ -161,7 +163,11 @@ POST /api/plugins/ai-chat/r/reply
 
 ---
 
-## 六、四种 Adapter
+## 六、四种 Adapter（历史方案，已不采用）
+
+> 现行实现没有 `adapter` 字段：插件分「内建 `index.js` / 外部 `plugin.json` / MCP 扩展 `kind: dsh-extension`」，
+> 能力用 `scopes` 分层、面板用 `ui` 描述，见根 `README.md` 与 [`index.json`](../index.json)。
+> 下表仅为当时设计记录。
 
 | Adapter | 接谁 | 需要额外装什么 | 能用到什么 |
 |---|---|---|---|
@@ -190,7 +196,9 @@ OpenAI 兼容的 `/chat/completions` 已经是事实标准。**这一个适配�
 } } }
 ```
 
-工具集：`qq_send` / `qq_recall` / `qq_mute` / `qq_group_info` / `qq_api`。
+工具集（当时 5 个，现行 `roost-mcp` 已增至 6 个，多了 `qq_capabilities`）：
+`qq_send` / `qq_recall` / `qq_mute` / `qq_group_info` / `qq_api` / `qq_capabilities`。
+现行工具清单见 [`packages/roost-mcp/README.md`](../packages/roost-mcp/README.md)。
 **任何支持 MCP 的工作台，加一行配置就能调 QQ。**
 
 ---
@@ -300,7 +308,10 @@ MCP 桥单独一个包（`roost-mcp`），因为它要被 `npx` 装到工作台�
 
 ---
 
-## 十、已拍板的三个决定
+## 十、已拍板的三个决定（当时的决定，已随 ai-chat 移除作废）
+
+> 下表「保留 `ai-chat` 并升 3.0.0」的决定**未落地即作废**：2026-11-23 `ai-chat` 被移除，
+> 现行插件是 `ai-native`。版本节奏（1.3.0 / 2.0.0 / 3.0.0）也没有对应发布。
 
 | 问题 | 决定 |
 |---|---|
