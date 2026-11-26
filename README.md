@@ -247,8 +247,7 @@ plugins/<插件id>/
   "path": "plugins/my-plugin",
   "runtime": "node",
   "tags": ["工具"],
-  "commands": ["mycmd"],
-  "addedAt": "2026-10-23"
+  "commands": ["mycmd"]
 }
 ```
 
@@ -263,7 +262,9 @@ plugins/<插件id>/
 | `runtime` | ✅ | 外部插件的启动方式：`python` / `node` / `go` / `exec`。内建插件（`index.js`）没有 `plugin.json`，也就没有这个字段 |
 | `tags` | | 分类标签 |
 | `commands` | | 主要命令名，方便用户检索 |
-| `addedAt` | | 收录日期 |
+
+> `credits` / `addedAt` / `contributors` 是已退役的旧流程字段，投稿人不要填；
+> 它们只作为维护者字段在校验脚本里保留识别，索引里不再出现。
 
 ---
 

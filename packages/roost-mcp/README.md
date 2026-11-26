@@ -3,14 +3,14 @@
 把 [Roost](https://github.com/roost-qq/qq-bot-roost) 的 QQ 能力做成 **MCP 工具**，
 让 Claude Desktop / Cursor / Cline / Continue / Windsurf 这些工作台能直接发 QQ 消息。
 
-方向跟 `ai-chat` 插件相反：
+方向跟 [`ai-native`](../plugins/ai-native/README.md) 插件相反：
 
 | | 谁当大脑 | 干什么 |
 |---|---|---|
-| `ai-chat` 插件 | 工作台 | QQ 消息进来 → 工作台想 → 插件发出去 |
+| `ai-native` 插件 | 模型直连 | QQ 消息进来 → 模型想 → 插件发出去（AI 住在群里） |
 | `roost-mcp` | 工作台 | 在工作台里说「帮我在群里发一句」→ 它调 QQ |
 
-两个可以同时用：`ai-chat` 负责「AI 住在群里」，`roost-mcp` 负责「你顺手让它发一句」。
+两者互不冲突：`ai-native` 负责「AI 住在群里」，`roost-mcp` 负责「你顺手让它发一句」。
 
 ---
 
